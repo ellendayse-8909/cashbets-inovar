@@ -112,8 +112,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',Arial,sans-ser
 .hi-res.won{color:var(--grn);}
 .hi-res.lost{color:var(--red);}
 /* AUTH */
-.as{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
-.ac{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:36px 32px;width:100%;max-width:380px;}
+.as{display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:300;background:rgba(11,13,23,0.97);}
+.ac{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:36px 32px;width:100%;max-width:380px;position:relative;}
 .alogo{text-align:center;margin-bottom:4px;font-size:1.4rem;font-weight:800;}
 .alogo em{color:var(--grn);font-style:normal;}
 .asub{text-align:center;color:var(--mut);font-size:.78rem;margin-bottom:22px;}
@@ -165,11 +165,13 @@ body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',Arial,sans-ser
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
-<div id="auth-screen" class="as">
+<!-- AUTH SCREEN (modal overlay) -->
+<div id="auth-screen" class="as" style="display:none">
   <div class="ac">
+    <button onclick="hideLoginModal()" style="position:absolute;top:10px;right:14px;background:transparent;border:none;color:var(--mut);font-size:1.3rem;cursor:pointer;line-height:1;z-index:1;">✕</button>
     <div class="alogo"><em>Cash</em> BETs</div>
     <div class="asub">Sua Cash que faz BETs</div>
+    <div id="auth-login-msg" style="display:none;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.3);border-radius:6px;padding:8px 12px;font-size:.8rem;color:var(--grn);margin-bottom:14px;text-align:center;"></div>
     <div class="atabs">
       <button class="atab on" id="tab-user" onclick="switchAuthTab('user')">Entrar / Cadastrar</button>
       <button class="atab" id="tab-admin" onclick="switchAuthTab('admin')">Admin</button>
@@ -191,15 +193,17 @@ body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',Arial,sans-ser
 </div>
 
 <!-- MAIN APP -->
-<div id="app" style="display:none">
+<div id="app">
   <!-- HEADER -->
   <header class="hdr">
     <div class="logo"><em>Cash</em> BETs</div>
     <div class="hdr-r">
-      <div class="cred-badge" id="hdr-cred">R$ 0,00</div>
-      <span id="last-updated" style="font-size:.68rem;color:var(--mut);">Atualizando...</span>
+      <div class="cred-badge" id="hdr-cred" style="display:none">R$ 0,00</div>
+      <span id="last-updated" style="font-size:.68rem;color:var(--mut);display:none">Atualizando...</span>
       <span class="uname" id="hdr-user"></span>
-      <button class="out-btn" onclick="doLogout()">Sair</button>
+      <button id="hdr-login-btn" class="out-btn" onclick="showLoginModal()" style="border-color:var(--grn);color:var(--grn);">Entrar</button>
+      <button id="hdr-logout-btn" class="out-btn" onclick="doLogout()" style="display:none">Sair</button>
+      <button class="out-btn" id="hdr-admin-btn" onclick="openAdminAccess()" style="font-size:.72rem;opacity:.75;border-color:#374151;">🔐 Admin</button>
     </div>
   </header>
 
@@ -662,6 +666,10 @@ function setDateFilter(f,el){
 
 // ===================== BET SLIP =====================
 function selectBet(evId,selIdx,label,odd){
+  if(!currentUser){
+    showLoginModal('🎯 Para apostar, faça seu cadastro abaixo. É rápido!');
+    return;
+  }
   const ev=EVENTS.find(e=>e.id===evId);
   if(!ev) return;
   if(isLocked(ev.iso)) return;
@@ -718,6 +726,10 @@ function systemPotential(stake){
 
 function renderSlip(){
   const el=document.getElementById('slip-inner');
+  if(!currentUser){
+    el.innerHTML='<div style="padding:20px;text-align:center;"><div style="font-size:1.8rem;margin-bottom:8px;">🎯</div><div style="color:var(--dim);margin-bottom:14px;font-size:.82rem;line-height:1.6;">Selecione uma cota para apostar.<br>É necessário fazer login.</div><button onclick="showLoginModal()" style="width:100%;padding:9px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer;">Entrar / Cadastrar</button></div>';
+    return;
+  }
   const modeHtml=``;
 
   if(betMode==='simples'){
@@ -1641,6 +1653,28 @@ async function adminSetCredits(userId,nome,inpId,dispId){
   }catch(e){alert('Erro: '+e.message);}
 }
 
+// ===================== AUTH MODAL HELPERS =====================
+function showLoginModal(msg){
+  const msgEl=document.getElementById('auth-login-msg');
+  if(msgEl){msgEl.textContent=msg||'';msgEl.style.display=msg?'block':'none';}
+  switchAuthTab('user');
+  document.getElementById('auth-screen').style.display='flex';
+}
+function hideLoginModal(){
+  document.getElementById('auth-screen').style.display='none';
+}
+function openAdminAccess(){
+  if(currentUser&&ADMIN_EMAILS.includes(currentUser.email)){
+    const el=document.querySelector('[data-cat="admin"]');
+    if(el) setCategory('admin',el);
+  } else {
+    const msgEl=document.getElementById('auth-login-msg');
+    if(msgEl){msgEl.style.display='none';}
+    switchAuthTab('admin');
+    document.getElementById('auth-screen').style.display='flex';
+  }
+}
+
 // ===================== AUTH =====================
 let authMode='user';
 function switchAuthTab(mode){
@@ -1877,76 +1911,19 @@ async function loadESPNData(){
 // ===================== AUTH STATE =====================
 let currentUserNome = null;
 let currentUserTel = null;
+// Carregar eventos imediatamente para visitantes
+renderEvents();
+updateCounts();
+loadESPNData();
+if(espnInterval) clearInterval(espnInterval);
+espnInterval=setInterval(()=>{espnLoaded=false;loadESPNData();},60*60*1000);
+
 auth.onAuthStateChanged(async user=>{
   if(user){
     currentUser=user;
-    document.getElementById('auth-screen').style.display='none';
-    document.getElementById('app').style.display='block';
+    hideLoginModal();
     // Reset button states
     const ubtn=document.querySelector('#auth-user-form button');
     const abtn=document.querySelector('#auth-admin-form button');
     if(ubtn){ubtn.disabled=false;ubtn.textContent='Entrar / Cadastrar';}
-    if(abtn){abtn.disabled=false;abtn.textContent='Entrar como Admin';}
-    // Load user data from Firestore
-    let nome=null;
-    try{
-      const snap=await db.collection('users').doc(user.uid).get();
-      if(snap.exists){
-        const d=snap.data();
-        nome=d.nome||null;
-        currentUserTel=d.telefone||null;
-        if(d.credits!=null) userCredits=d.credits;
-        else userCredits=0;
-      } else {
-        // New admin user
-        if(ADMIN_EMAILS.includes(user.email)){
-          await db.collection('users').doc(user.uid).set({
-            email:user.email,credits:0,totalBets:0,totalWon:0,
-            createdAt:firebase.firestore.FieldValue.serverTimestamp()
-          },{merge:true});
-        }
-        userCredits=0;
-      }
-    }catch{userCredits=0;}
-    // Display name: nome para usuários comuns, prefixo do email para admins
-    currentUserNome=nome;
-    // currentUserTel already set above inside snap.exists block
-    const isAdmin=ADMIN_EMAILS.includes(user.email);
-    document.getElementById('hdr-user').textContent=nome||(user.email?user.email.split('@')[0]:'Usuário');
-    if(isAdmin){
-      document.getElementById('sb-admin').style.display='flex';
-      document.getElementById('sb-ranking').style.display='flex';
-    }
-    updateHdrCredits();
-    updateCounts();
-    renderEvents();
-    loadESPNData();
-    if(espnInterval) clearInterval(espnInterval);
-    espnInterval=setInterval(()=>{espnLoaded=false;loadESPNData();},60*60*1000);
-    if(betsUnsub) betsUnsub();
-    betsUnsub=db.collection('bets').where('userId','==',user.uid).limit(50).onSnapshot(snap=>{
-      allBets=snap.docs.map(d=>({_id:d.id,...d.data()}));
-      renderHistory(allBets);
-    }, err=>{
-      console.error('Firestore bets error:',err);
-      db.collection('bets').where('userId','==',user.uid).limit(50).get().then(s=>{
-        allBets=s.docs.map(d=>({_id:d.id,...d.data()}));
-        renderHistory(allBets);
-      });
-    });
-  } else {
-    currentUser=null;
-    currentUserNome=null;
-    currentUserTel=null;
-    espnLoaded=false;
-    if(espnInterval){clearInterval(espnInterval);espnInterval=null;}
-    if(betsUnsub){betsUnsub();betsUnsub=null;}
-    document.getElementById('auth-screen').style.display='flex';
-    document.getElementById('app').style.display='none';
-    document.getElementById('sb-ranking').style.display='none';
-    document.getElementById('sb-admin').style.display='none';
-  }
-});
-</script>
-</body>
-</html>
+    if
