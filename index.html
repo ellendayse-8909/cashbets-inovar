@@ -161,6 +161,27 @@ body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',Arial,sans-ser
 .ms-odd{color:var(--oddc);font-weight:700;}
 .ms-del{position:absolute;top:5px;right:6px;background:transparent;border:none;color:var(--mut);cursor:pointer;font-size:.85rem;}
 .ms-del:hover{color:var(--red);}
+
+/* EXTRA MARKETS */
+.mkt-wrap{border-top:1px solid #1f2937;margin-top:8px;padding-top:2px;}
+.mkt-sec{margin-bottom:2px;}
+.mkt-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 0 4px;cursor:pointer;color:var(--mut);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;user-select:none;border:none;background:transparent;width:100%;}
+.mkt-hdr:hover{color:var(--dim);}
+.mkt-hdr .mkt-arr{font-size:.65rem;transition:transform .2s;}
+.mkt-hdr.open .mkt-arr{transform:rotate(180deg);}
+.mkt-body{display:none;padding-bottom:6px;}
+.mkt-body.open{display:block;}
+.mkt-odds-row{display:flex;gap:4px;flex-wrap:wrap;}
+.mkt-ob-w{display:flex;flex-direction:column;min-width:0;}
+.mkt-lbl{font-size:.62rem;color:var(--mut);text-align:center;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;}
+.mkt-ob{background:var(--oddbg);border:1px solid #2d3748;color:var(--oddc);font-weight:700;font-size:.8rem;padding:5px 7px;border-radius:4px;cursor:pointer;white-space:nowrap;width:100%;text-align:center;}
+.mkt-ob:hover{background:#283648;border-color:var(--oddc);}
+.mkt-ob.sel{background:var(--oddc);color:#0b0d17;border-color:var(--oddc);}
+.mkt-ob.lck{background:#131820;color:#374151;border-color:#1f2937;cursor:not-allowed;}
+.tg-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.tg-line-lbl{font-size:.72rem;color:var(--dim);min-width:28px;text-align:right;}
+.tg-side-lbl{font-size:.62rem;color:var(--mut);text-align:center;margin-bottom:2px;}
+.rc-grid{display:flex;flex-wrap:wrap;gap:4px;}
 </style>
 </head>
 <body>
@@ -546,6 +567,129 @@ function renderOdds(ev){
     <div class="ob-w"><div class="ob-lbl">${ev.away.n}</div><button class="ob ${cls(2)}" ${locked?'disabled':''} onclick="selectBet('${ev.id}',2,'${ev.away.n.replace(/'/g,"\\'")}',${oa})">${oa.toFixed(2)}</button></div>`;
 }
 
+
+// ===================== EXTRA MARKETS =====================
+function poissonPmf(k,lam){let r=Math.exp(-lam);for(let i=1;i<=k;i++)r*=lam/i;return r;}
+function poissonCdf(k,lam){let s=0;for(let i=0;i<=k;i++)s+=poissonPmf(i,lam);return s;}
+
+function genExtraOdds(ev){
+  if(!ev.home||!ev.away) return null;
+  const sh=getStr(ev.home.n)+0.06, sa=getStr(ev.away.n);
+  const tot=sh+sa+0.28;
+  const pH=sh/tot, pD=0.28/tot, pA=sa/tot;
+  // Expected goals per team (Poisson λ)
+  const λh=Math.max(0.3, (sh/(sh+sa))*3.2);
+  const λa=Math.max(0.15, (sa/(sh+sa))*2.4);
+
+  // Chance Dupla
+  const hn=ev.home.n, an=ev.away.n;
+  const cd=[
+    {label:`${hn} ou Empate`, odd:p2o(pH+pD)},
+    {label:`${hn} ou ${an}`,   odd:p2o(pH+pA)},
+    {label:`Empate ou ${an}`, odd:p2o(pD+pA)},
+  ];
+
+  // Ambas marcam
+  const pHsc=1-Math.exp(-λh), pAsc=1-Math.exp(-λa);
+  const pBoth=pHsc*pAsc;
+  const amb=[
+    {label:'Sim', odd:p2o(Math.max(0.02,pBoth))},
+    {label:'Não', odd:p2o(Math.max(0.02,1-pBoth))},
+  ];
+
+  // Total de gols — linhas 0.5 / 1.5 / 2.5 / 3.5
+  const λt=λh+λa;
+  const tg=[0.5,1.5,2.5,3.5].map(line=>{
+    const under=poissonCdf(Math.floor(line),λt);
+    return{line, overOdd:p2o(Math.max(0.02,1-under)), underOdd:p2o(Math.max(0.02,under))};
+  });
+
+  // Resultado Correto (grid)
+  const scores=[[1,0],[2,0],[3,0],[4,0],[0,0],[1,1],[2,1],[3,1],[0,1],[2,2],[0,2],[1,2],[4,1],[3,2]];
+  let otherP=1;
+  const rc=scores.map(([h,a])=>{
+    const p=poissonPmf(h,λh)*poissonPmf(a,λa);
+    otherP-=p;
+    return{label:`${h}-${a}`, odd:p2o(Math.max(0.01,p))};
+  });
+  rc.push({label:'Outros', odd:p2o(Math.max(0.01,otherP))});
+
+  return{cd,amb,tg,rc};
+}
+
+function toggleMarket(btn){
+  btn.classList.toggle('open');
+  const body=btn.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function mktObCls(evId,mktKey,idx){
+  if(betMode==='simples') return slip&&slip.evId===evId&&slip.mktKey===mktKey&&slip.selIdx===idx?'sel':'';
+  return multiSlip.some(s=>s.evId===evId&&s.mktKey===mktKey&&s.selIdx===idx)?'sel':'';
+}
+
+function renderExtraMarkets(ev){
+  if(!ev.home||!ev.away||ev.isPol) return '';
+  const locked=ev.status==='finished'||isLocked(ev.iso);
+  const x=genExtraOdds(ev);
+  if(!x) return '';
+  const lk=locked?'lck':'';
+  const dis=locked?'disabled':'';
+
+  // Chance Dupla
+  const cdHtml=x.cd.map((o,i)=>`
+    <div class="mkt-ob-w">
+      <div class="mkt-lbl">${o.label}</div>
+      <button class="mkt-ob ${lk} ${mktObCls(ev.id,'cd',i)}" ${dis} onclick="selectBet('${ev.id}',${i},'Chance Dupla: ${o.label.replace(/'/g,"\'")}',${o.odd},'cd')">${o.odd.toFixed(2)}</button>
+    </div>`).join('');
+
+  // Ambas marcam
+  const ambHtml=x.amb.map((o,i)=>`
+    <div class="mkt-ob-w">
+      <div class="mkt-lbl">${o.label}</div>
+      <button class="mkt-ob ${lk} ${mktObCls(ev.id,'amb',i)}" ${dis} onclick="selectBet('${ev.id}',${i},'Ambas Marcam: ${o.label}',${o.odd},'amb')">${o.odd.toFixed(2)}</button>
+    </div>`).join('');
+
+  // Total de gols
+  const tgHtml=x.tg.map((t,i)=>`
+    <div class="tg-row">
+      <span class="tg-line-lbl">${t.line}</span>
+      <div class="mkt-ob-w" style="min-width:70px">
+        <div class="tg-side-lbl">Mais de</div>
+        <button class="mkt-ob ${lk} ${mktObCls(ev.id,'tg_over',i)}" ${dis} onclick="selectBet('${ev.id}',${i},'Total Gols Mais ${t.line}',${t.overOdd},'tg_over')">${t.overOdd.toFixed(2)}</button>
+      </div>
+      <div class="mkt-ob-w" style="min-width:70px">
+        <div class="tg-side-lbl">Menos de</div>
+        <button class="mkt-ob ${lk} ${mktObCls(ev.id,'tg_under',i)}" ${dis} onclick="selectBet('${ev.id}',${i},'Total Gols Menos ${t.line}',${t.underOdd},'tg_under')">${t.underOdd.toFixed(2)}</button>
+      </div>
+    </div>`).join('');
+
+  // Resultado correto
+  const rcHtml='<div class="rc-grid">'+x.rc.map((o,i)=>`
+    <div class="mkt-ob-w">
+      <div class="mkt-lbl">${o.label}</div>
+      <button class="mkt-ob ${lk} ${mktObCls(ev.id,'rc',i)}" ${dis} onclick="selectBet('${ev.id}',${i},'Resultado Correto ${o.label}',${o.odd},'rc')">${o.odd.toFixed(2)}</button>
+    </div>`).join('')+'</div>';
+
+  return `<div class="mkt-wrap">
+    <div class="mkt-sec">
+      <button class="mkt-hdr" onclick="toggleMarket(this)">Chance Dupla <span class="mkt-arr">▼</span></button>
+      <div class="mkt-body"><div class="mkt-odds-row">${cdHtml}</div></div>
+    </div>
+    <div class="mkt-sec">
+      <button class="mkt-hdr" onclick="toggleMarket(this)">Ambas Equipes Marcam <span class="mkt-arr">▼</span></button>
+      <div class="mkt-body"><div class="mkt-odds-row">${ambHtml}</div></div>
+    </div>
+    <div class="mkt-sec">
+      <button class="mkt-hdr" onclick="toggleMarket(this)">Total de Gols <span class="mkt-arr">▼</span></button>
+      <div class="mkt-body">${tgHtml}</div>
+    </div>
+    <div class="mkt-sec">
+      <button class="mkt-hdr" onclick="toggleMarket(this)">Resultado Correto <span class="mkt-arr">▼</span></button>
+      <div class="mkt-body">${rcHtml}</div>
+    </div>
+  </div>`;
+}
 function renderSoccerCard(ev){
   const sc=ev.score;
   return `
@@ -570,6 +714,7 @@ function renderSoccerCard(ev){
       ${badge(ev)}
     </div>
     <div class="odds-row">${renderOdds(ev)}</div>
+    ${renderExtraMarkets(ev)}
   </div>`;
 }
 
@@ -665,7 +810,7 @@ function setDateFilter(f,el){
 }
 
 // ===================== BET SLIP =====================
-function selectBet(evId,selIdx,label,odd){
+function selectBet(evId,selIdx,label,odd,mktKey){
   const ev=EVENTS.find(e=>e.id===evId);
   if(!ev) return;
   if(isLocked(ev.iso)) return;
@@ -673,14 +818,14 @@ function selectBet(evId,selIdx,label,odd){
   const evLabel=ev.isPol?ev.title:(ev.home.n+' x '+ev.away.n);
   if(betMode==='simples'){
     if(slip&&slip.evId===evId&&slip.selIdx===selIdx) slip=null;
-    else slip={evId,selIdx,label,odd,evLabel,iso:ev.iso};
+    else slip={evId,selIdx,label,odd,evLabel,iso:ev.iso,mktKey:mktKey||'1x2'};
   } else {
     const idx=multiSlip.findIndex(s=>s.evId===evId);
     if(idx>=0){
       if(multiSlip[idx].selIdx===selIdx) multiSlip.splice(idx,1);
       else multiSlip[idx]={evId,selIdx,label,odd,evLabel,iso:ev.iso};
     } else {
-      multiSlip.push({evId,selIdx,label,odd,evLabel,iso:ev.iso});
+      multiSlip.push({evId,selIdx,label,odd,evLabel,iso:ev.iso,mktKey:mktKey||'1x2'});
     }
   }
   renderSlip();
