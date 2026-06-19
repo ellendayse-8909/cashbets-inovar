@@ -666,10 +666,6 @@ function setDateFilter(f,el){
 
 // ===================== BET SLIP =====================
 function selectBet(evId,selIdx,label,odd){
-  if(!currentUser){
-    showLoginModal('🎯 Para apostar, faça seu cadastro abaixo. É rápido!');
-    return;
-  }
   const ev=EVENTS.find(e=>e.id===evId);
   if(!ev) return;
   if(isLocked(ev.iso)) return;
@@ -726,10 +722,6 @@ function systemPotential(stake){
 
 function renderSlip(){
   const el=document.getElementById('slip-inner');
-  if(!currentUser){
-    el.innerHTML='<div style="padding:20px;text-align:center;"><div style="font-size:1.8rem;margin-bottom:8px;">🎯</div><div style="color:var(--dim);margin-bottom:14px;font-size:.82rem;line-height:1.6;">Selecione uma cota para apostar.<br>É necessário fazer login.</div><button onclick="showLoginModal()" style="width:100%;padding:9px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer;">Entrar / Cadastrar</button></div>';
-    return;
-  }
   const modeHtml=``;
 
   if(betMode==='simples'){
@@ -1006,7 +998,10 @@ async function resolvePendingBets(){
 
 // ─────────────────────────────────────────────────────────────
 async function confirmBet(){
-  if(!currentUser) return;
+  if(!currentUser){
+    showLoginModal('🎯 Para confirmar sua aposta, faça seu cadastro. É rápido!');
+    return;
+  }
   // Multi-bet path
   if(betMode==='multiplas'){
     await confirmMultiplasBets();
