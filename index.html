@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash BETs</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#0b0d17;--sb:#12151f;--card:#1a1f2e;--bord:#252d3d;--grn:#1db954;--grn2:#17a347;--red:#e53935;--oddbg:#1e2a3a;--oddc:#f0a500;--txt:#e4e6eb;--mut:#6b7280;--dim:#9aa3af;--hdr:#0d1117;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;font-size:14px;}
+/* HEADER */
+.hdr{background:var(--hdr);border-bottom:1px solid #1f2937;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.logo{font-weight:800;font-size:1.15rem;letter-spacing:-.3px;}
+.logo em{color:var(--grn);font-style:normal;}
+.cred-badge{background:rgba(29,185,84,.1);border:1px solid var(--grn);color:var(--grn);padding:4px 12px;border-radius:20px;font-weight:700;font-size:.88rem;}
+.hdr-r{display:flex;align-items:center;gap:12px;}
+.uname{color:var(--dim);font-size:.78rem;}
+.out-btn{background:transparent;border:1px solid #2d3748;color:var(--mut);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:.75rem;}
+.out-btn:hover{color:var(--red);border-color:var(--red);}
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 52px);overflow:hidden;}
+/* SIDEBAR */
+.sidebar{width:190px;flex-shrink:0;background:var(--sb);border-right:1px solid #1f2937;overflow-y:auto;padding:6px 0;}
+.sb-sec{font-size:.65rem;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;padding:12px 14px 4px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;color:var(--dim);font-size:.83rem;border-left:3px solid transparent;transition:all .15s;user-select:none;}
+.sb-item:hover{background:#1a1f2e;color:var(--txt);}
+.sb-item.active{background:#1a1f2e;color:var(--txt);border-left-color:var(--grn);font-weight:600;}
+.sb-icon{font-size:.9rem;width:20px;text-align:center;}
+.sb-label{flex:1;}
+.sb-cnt{background:#1a1f2e;color:var(--mut);font-size:.65rem;padding:1px 6px;border-radius:10px;}
+.sb-cnt.live{background:rgba(229,57,53,.15);color:var(--red);}
+/* MAIN */
+.main{flex:1;overflow-y:auto;min-width:0;}
+/* FILTER BAR */
+.fbar{background:var(--hdr);border-bottom:1px solid #1f2937;padding:8px 14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:40;}
+.fpill{padding:5px 14px;border-radius:20px;border:1px solid #252d3d;background:transparent;color:var(--mut);font-size:.76rem;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.fpill:hover{border-color:var(--grn);color:var(--txt);}
+.fpill.on{background:var(--grn);border-color:var(--grn);color:#fff;font-weight:700;}
+.fpill.live-p{border-color:var(--red);color:var(--red);}
+.fpill.live-p.on{background:var(--red);border-color:var(--red);color:#fff;}
+.srch{margin-left:auto;display:flex;align-items:center;background:#1a1f2e;border:1px solid #252d3d;border-radius:20px;padding:4px 12px;gap:6px;}
+.srch input{background:transparent;border:none;outline:none;color:var(--txt);font-size:.78rem;width:140px;}
+.srch input::placeholder{color:var(--mut);}
+/* EVENTS AREA */
+.ea{padding:12px;}
+.comp-grp{margin-bottom:14px;}
+.comp-hdr{background:var(--card);border:1px solid var(--bord);border-radius:6px 6px 0 0;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--dim);}
+.comp-hdr .cn{color:var(--txt);font-weight:600;}
+.comp-hdr .cr{color:var(--mut);font-weight:400;margin-left:4px;font-size:.74rem;}
+.ev-card{background:var(--card);border:1px solid var(--bord);border-top:none;padding:10px 14px;transition:background .12s;}
+.ev-card:last-child{border-radius:0 0 6px 6px;}
+.ev-card:hover{background:#1e2538;}
+.ev-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:9px;}
+.ev-time{min-width:62px;}
+.ev-time .tt{font-size:.8rem;font-weight:600;color:var(--dim);}
+.ev-time .dd{font-size:.66rem;color:var(--mut);margin-top:1px;}
+.ev-teams{flex:1;}
+.tr{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+.tf{font-size:1rem;width:22px;text-align:center;}
+.tn{font-size:.88rem;font-weight:500;}
+.ts{margin-left:auto;font-weight:700;font-size:.95rem;min-width:16px;text-align:center;}
+.ts.win{color:var(--grn);}
+.bdg{font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:4px;white-space:nowrap;align-self:flex-start;}
+.bdg.live{background:rgba(229,57,53,.15);color:var(--red);border:1px solid rgba(229,57,53,.3);animation:pulse 1.5s infinite;}
+.bdg.open{background:rgba(29,185,84,.1);color:var(--grn);border:1px solid rgba(29,185,84,.3);}
+.bdg.soon{background:rgba(240,165,0,.1);color:#f0a500;border:1px solid rgba(240,165,0,.3);}
+.bdg.done{background:#1a1f2e;color:var(--mut);border:1px solid #252d3d;}
+.bdg.lock{background:#1a1f2e;color:#4b5563;border:1px solid #1f2937;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.odds-row{display:flex;gap:5px;}
+.ob-w{flex:1;}
+.ob-lbl{font-size:.64rem;color:var(--mut);text-align:center;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ob{width:100%;background:var(--oddbg);border:1px solid #2d3748;color:var(--oddc);font-weight:700;font-size:.88rem;padding:6px 4px;border-radius:4px;cursor:pointer;transition:all .15s;text-align:center;}
+.ob:hover{background:#283648;border-color:var(--oddc);}
+.ob.sel{background:var(--oddc);color:#0b0d17;border-color:var(--oddc);}
+.ob.lck{background:#131820;color:#374151;border-color:#1f2937;cursor:not-allowed;font-size:.72rem;}
+.ob.win{background:rgba(29,185,84,.1);color:var(--grn);border-color:rgba(29,185,84,.3);cursor:default;}
+.ob.drw{background:rgba(91,155,213,.1);color:#5b9bd5;border-color:rgba(91,155,213,.3);cursor:default;}
+/* POL CARD */
+.pol-title{font-size:.9rem;font-weight:600;margin-bottom:8px;}
+/* RIGHT PANEL */
+.rp{width:270px;flex-shrink:0;background:var(--sb);border-left:1px solid #1f2937;overflow-y:auto;display:flex;flex-direction:column;}
+.ps{border-bottom:1px solid #1f2937;padding:14px;}
+.pt{font-size:.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.slip-empty{color:var(--mut);font-size:.78rem;text-align:center;padding:10px 0;}
+.slip-c{background:#12151f;border:1px solid #252d3d;border-radius:6px;padding:9px;margin-bottom:10px;}
+.slip-ev{font-size:.72rem;color:var(--mut);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.slip-sel{font-size:.86rem;font-weight:600;}
+.slip-odd{color:var(--oddc);font-weight:700;font-size:.8rem;margin-top:2px;}
+.sl{font-size:.7rem;color:var(--mut);margin-bottom:4px;}
+.si{width:100%;background:#12151f;border:1px solid #252d3d;color:var(--txt);padding:7px 10px;border-radius:4px;font-size:.95rem;font-weight:700;text-align:center;outline:none;}
+.qs-r{display:flex;gap:4px;margin:6px 0;}
+.qs{flex:1;padding:4px;background:#1a1f2e;border:1px solid #252d3d;color:var(--dim);font-size:.7rem;border-radius:4px;cursor:pointer;text-align:center;}
+.qs:hover{background:#252d3d;}
+.ret-box{background:rgba(29,185,84,.05);border:1px solid rgba(29,185,84,.2);border-radius:4px;padding:6px 10px;display:flex;justify-content:space-between;margin:8px 0;font-size:.78rem;}
+.ret-lbl{color:var(--mut);}
+.ret-val{color:var(--grn);font-weight:700;}
+.cbtn{width:100%;padding:10px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;}
+.cbtn:hover{background:var(--grn2);}
+.xbtn{width:100%;padding:5px;margin-top:6px;background:transparent;color:var(--mut);border:1px solid #252d3d;border-radius:4px;font-size:.73rem;cursor:pointer;}
+.hi{border-radius:4px;padding:7px 9px;margin-bottom:5px;border-left:3px solid;font-size:.74rem;}
+.hi.won{background:rgba(29,185,84,.05);border-left-color:var(--grn);}
+.hi.lost{background:rgba(229,57,53,.05);border-left-color:var(--red);}
+.hi.pending{background:rgba(240,165,0,.05);border-left-color:#f0a500;}
+.hi-ev{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hi-sel{color:var(--dim);font-weight:600;}
+.hi-res.pending{color:#f0a500;}
+.hi-res{font-weight:700;margin-top:2px;}
+.hi-res.won{color:var(--grn);}
+.hi-res.lost{color:var(--red);}
+/* AUTH */
+.as{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
+.ac{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:36px 32px;width:100%;max-width:380px;}
+.alogo{text-align:center;margin-bottom:4px;font-size:1.4rem;font-weight:800;}
+.alogo em{color:var(--grn);font-style:normal;}
+.asub{text-align:center;color:var(--mut);font-size:.78rem;margin-bottom:22px;}
+.atabs{display:flex;background:#12151f;border-radius:6px;padding:3px;margin-bottom:18px;}
+.atab{flex:1;padding:7px;text-align:center;cursor:pointer;border-radius:4px;color:var(--mut);font-size:.84rem;font-weight:600;border:none;background:transparent;}
+.atab.on{background:var(--card);color:var(--txt);}
+.fg{margin-bottom:13px;}
+.fl{display:block;font-size:.74rem;color:var(--mut);margin-bottom:4px;}
+.fi{width:100%;background:#12151f;border:1px solid #252d3d;color:var(--txt);padding:9px 12px;border-radius:6px;font-size:.9rem;outline:none;}
+.fi:focus{border-color:var(--grn);}
+.abtn{width:100%;padding:11px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;}
+.abtn:hover{background:var(--grn2);}
+.aerr{color:#f87171;font-size:.74rem;margin-top:8px;text-align:center;min-height:16px;}
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.83);display:flex;align-items:center;justify-content:center;z-index:200;}
+.mb{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:28px 24px;max-width:340px;width:90%;text-align:center;}
+.mb h2{font-size:1.1rem;font-weight:700;margin-bottom:12px;}
+.mb h2.won{color:var(--grn);}
+.mb h2.lost{color:var(--red);}
+.mb p{color:var(--dim);font-size:.82rem;line-height:1.7;margin-bottom:16px;}
+.mc{padding:9px 30px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;}
+/* RANKING */
+.rtbl{width:100%;border-collapse:collapse;font-size:.8rem;}
+.rtbl th{background:#12151f;color:var(--mut);padding:8px 10px;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;border-bottom:1px solid #252d3d;}
+.rtbl td{padding:8px 10px;border-bottom:1px solid #1a1f2e;}
+.rtbl tr:hover td{background:#1a1f2e;}
+/* ADMIN */
+.af-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.af-bar input,.af-bar select{background:#1a1f2e;color:var(--txt);border:1px solid #252d3d;padding:6px 10px;border-radius:4px;font-size:.78rem;outline:none;flex:1;}
+.ab{background:var(--card);border-left:3px solid;border-radius:4px;padding:8px 12px;margin-bottom:6px;font-size:.76rem;}
+.ab.won{border-left-color:var(--grn);}
+.ab.lost{border-left-color:var(--red);}
+.loading{color:var(--mut);text-align:center;padding:40px;}
+.no-ev{color:var(--mut);text-align:center;padding:50px;font-size:.84rem;}
+@media(max-width:900px){.sidebar{width:46px;}.sb-item .sb-label,.sb-item .sb-cnt,.sb-sec{display:none;}.sb-item{justify-content:center;padding:10px;}.rp{width:230px;}}
+@media(max-width:640px){.layout{flex-direction:column;height:auto;overflow:visible;}.sidebar{width:100%;height:auto;display:flex;flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid #1f2937;padding:4px 8px;}.sb-sec{display:none;}.sb-item{white-space:nowrap;border-left:none;border-bottom:2px solid transparent;padding:8px 10px;}.sb-item.active{border-bottom-color:var(--grn);border-left:none;background:transparent;}.rp{width:100%;border-left:none;border-top:1px solid #1f2937;}.main{overflow:visible;}}
+
+.mode-toggle{display:flex;gap:4px;margin-bottom:10px;background:#0d1117;border-radius:6px;padding:3px;}
+.mtb{flex:1;padding:5px 4px;border:none;border-radius:5px;background:transparent;color:var(--mut);font-size:.72rem;cursor:pointer;transition:all .15s;font-weight:600;}
+.mtb.on{background:var(--grn);color:#fff;}
+.ms-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;max-height:220px;overflow-y:auto;}
+.ms-item{background:#0d1117;border-radius:6px;padding:7px 10px;position:relative;border-left:3px solid var(--oddc);}
+.ms-ev{font-size:.72rem;color:var(--mut);margin-bottom:2px;}
+.ms-sel{font-size:.8rem;color:var(--txt);}
+.ms-odd{color:var(--oddc);font-weight:700;}
+.ms-del{position:absolute;top:5px;right:6px;background:transparent;border:none;color:var(--mut);cursor:pointer;font-size:.85rem;}
+.ms-del:hover{color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" class="as">
+  <div class="ac">
+    <div class="alogo"><em>Cash</em> BETs</div>
+    <div class="asub">Sua Cash que faz BETs</div>
+    <div class="atabs">
+      <button class="atab on" id="tab-user" onclick="switchAuthTab('user')">Entrar / Cadastrar</button>
+      <button class="atab" id="tab-admin" onclick="switchAuthTab('admin')">Admin</button>
+    </div>
+    <!-- Formulário do usuário comum -->
+    <div id="auth-user-form">
+      <div class="fg"><label class="fl">Nome completo</label><input class="fi" id="a-nome" type="text" placeholder="Seu nome completo" autocomplete="name"></div>
+      <div class="fg"><label class="fl">Telefone (WhatsApp)</label><input class="fi" id="a-tel" type="tel" placeholder="(99) 99999-9999" autocomplete="tel"></div>
+      <button class="abtn" onclick="doUserAuth()">Entrar / Cadastrar</button>
+    </div>
+    <!-- Formulário do admin (oculto por padrão) -->
+    <div id="auth-admin-form" style="display:none">
+      <div class="fg"><label class="fl">E-mail</label><input class="fi" id="a-email" type="email" placeholder="admin@email.com" autocomplete="email"></div>
+      <div class="fg"><label class="fl">Senha</label><input class="fi" id="a-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="abtn" onclick="doAdminAuth()">Entrar como Admin</button>
+    </div>
+    <div class="aerr" id="a-err"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="logo"><em>Cash</em> BETs</div>
+    <div class="hdr-r">
+      <div class="cred-badge" id="hdr-cred">R$ 0,00</div>
+      <span id="last-updated" style="font-size:.68rem;color:var(--mut);">Atualizando...</span>
+      <span class="uname" id="hdr-user"></span>
+      <button class="out-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sb-sec">Esportes</div>
+      <div class="sb-item active" data-cat="all" onclick="setCategory('all',this)">
+        <span class="sb-icon">🎯</span><span class="sb-label">Todos</span>
+        <span class="sb-cnt" id="cnt-all">0</span>
+      </div>
+      <div class="sb-item" data-cat="live-side" onclick="setCategory('live-side',this)">
+        <span class="sb-icon">🔴</span><span class="sb-label">Ao Vivo</span>
+        <span class="sb-cnt live" id="cnt-live">0</span>
+      </div>
+      <div class="sb-sec">Futebol</div>
+      <div class="sb-item" data-cat="Copa" onclick="setCategory('Copa',this)">
+        <span class="sb-icon">🌍</span><span class="sb-label">Copa do Mundo</span>
+        <span class="sb-cnt" id="cnt-Copa">0</span>
+      </div>
+      <div class="sb-item" data-cat="SerieA" onclick="setCategory('SerieA',this)">
+        <span class="sb-icon">🇧🇷</span><span class="sb-label">Série A</span>
+        <span class="sb-cnt" id="cnt-SerieA">0</span>
+      </div>
+      <div class="sb-sec">Outros</div>
+      <div class="sb-item" data-cat="Politica" onclick="setCategory('Politica',this)">
+        <span class="sb-icon">🗳️</span><span class="sb-label">Política</span>
+        <span class="sb-cnt" id="cnt-Politica">0</span>
+      </div>
+      <div class="sb-sec">Conta</div>
+      <div class="sb-item" id="sb-ranking" data-cat="ranking" onclick="setCategory('ranking',this)" style="display:none">
+        <span class="sb-icon">📊</span><span class="sb-label">Ranking</span>
+      </div>
+      <div class="sb-item" id="sb-admin" data-cat="admin" onclick="setCategory('admin',this)" style="display:none">
+        <span class="sb-icon">🔐</span><span class="sb-label">Admin</span>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <!-- FILTER BAR -->
+      <div class="fbar" id="filter-bar">
+        <button class="fpill live-p" id="fp-live" onclick="setDateFilter('live',this)">🔴 AO VIVO</button>
+        <button class="fpill on" id="fp-all" onclick="setDateFilter('all',this)">Todos</button>
+        <button class="fpill" id="fp-today" onclick="setDateFilter('today',this)">Hoje</button>
+        <button class="fpill" id="fp-tom" onclick="setDateFilter('tomorrow',this)">Amanhã</button>
+        <button class="fpill" id="fp-week" onclick="setDateFilter('week',this)">Esta Semana</button>
+        <div class="srch">
+          <span>🔍</span>
+          <input type="text" id="srch-input" placeholder="Buscar time ou competição..." oninput="renderEvents()">
+        </div>
+      </div>
+
+      <!-- EVENTS -->
+      <div class="ea" id="events-area">
+        <div class="loading">Carregando eventos...</div>
+      </div>
+
+      <!-- RANKING (hidden by default) -->
+      <div id="ranking-area" style="display:none;padding:14px;">
+        <div style="font-weight:700;color:var(--txt);margin-bottom:12px;">🏅 Ranking de Apostadores</div>
+        <div id="rank-content"><div class="loading">Carregando...</div></div>
+      </div>
+
+      <!-- ADMIN (hidden by default) -->
+      <div id="admin-area" style="display:none;padding:14px;">
+        <div style="font-weight:700;color:var(--txt);margin-bottom:12px;">🔐 Painel Administrativo</div>
+        <!-- Admin tabs -->
+        <div class="atabs" style="margin-bottom:14px;">
+          <button class="atab on" id="adm-tab-bets" onclick="switchAdminTab('bets')">Apostas</button>
+          <button class="atab" id="adm-tab-credits" onclick="switchAdminTab('credits')">💳 Créditos</button>
+          <button class="atab" id="adm-tab-users" onclick="switchAdminTab('users')">👥 Usuários</button>
+        </div>
+        <!-- Bets section -->
+        <div id="adm-sec-bets">
+          <div class="af-bar">
+            <input type="text" id="adm-srch" placeholder="Buscar por usuário..." oninput="renderAdmin()">
+            <select id="adm-filter" onchange="renderAdmin()">
+              <option value="all">Todas apostas</option>
+              <option value="won">Ganhas</option>
+              <option value="lost">Perdidas</option>
+            </select>
+            <button onclick="adminCorrectESPNBets()" style="background:#1e2a3a;border:1px solid var(--oddc);color:var(--oddc);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:.76rem;font-weight:700;">⚡ Corrigir com ESPN</button>
+          </div>
+          <div id="adm-fix-log" style="display:none;background:rgba(29,185,84,.05);border:1px solid rgba(29,185,84,.2);border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:.76rem;color:var(--dim);"></div>
+          <div id="admin-content"><div class="loading">Carregando...</div></div>
+        </div>
+        <!-- Credit requests section -->
+        <div id="adm-sec-credits" style="display:none;">
+          <div id="adm-credit-req-content"><div class="loading">Carregando...</div></div>
+        </div>
+        <!-- Users section -->
+        <div id="adm-sec-users" style="display:none;">
+          <div id="adm-users-content"><div class="loading">Carregando...</div></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="rp">
+      <!-- BET SLIP -->
+      <div class="ps">
+        <div class="pt">🎫 Aposta</div>
+        <div id="slip-inner">
+          <div class="slip-empty">Selecione uma cota para apostar</div>
+        </div>
+      </div>
+      <!-- HISTORY -->
+      <div class="ps" style="flex:1;overflow-y:auto;">
+        <div class="pt">📋 Minhas Apostas</div>
+        <div id="hist-inner"><div class="slip-empty">Nenhuma aposta ainda</div></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="mo" style="display:none">
+  <div class="mb">
+    <h2 id="modal-title"></h2>
+    <p id="modal-body"></p>
+    <button class="mc" onclick="closeModal()">OK</button>
+  </div>
+</div>
+
+<!-- CREDIT REQUEST MODAL -->
+<div id="credit-req-modal" class="mo" style="display:none">
+  <div class="mb" style="max-width:380px;width:92%;text-align:left;">
+    <h2 style="color:var(--oddc);margin-bottom:8px;">💳 Solicitar Créditos</h2>
+    <p style="color:var(--mut);font-size:.82rem;margin-bottom:16px;line-height:1.6;">Seus créditos serão adicionados após a aprovação do administrador.</p>
+    <div class="fg"><label class="fl">Nome</label><input class="fi" id="cr-nome" type="text" placeholder="Seu nome completo"></div>
+    <div class="fg"><label class="fl">Telefone</label><input class="fi" id="cr-tel" type="tel" placeholder="(99) 99999-9999"></div>
+    <div class="fg"><label class="fl">E-mail</label><input class="fi" id="cr-email" type="email" placeholder="seu@email.com"></div>
+    <div class="fg"><label class="fl">Créditos desejados (R$)</label><input class="fi" id="cr-valor" type="number" min="10" step="10" placeholder="Ex: 100"></div>
+    <div id="cr-err" style="color:#f87171;font-size:.78rem;margin-bottom:10px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button id="cr-cancel-btn" onclick="closeCreditModal()" style="flex:1;padding:9px;background:transparent;border:1px solid #252d3d;color:var(--mut);border-radius:6px;cursor:pointer;font-size:.88rem;">Cancelar</button>
+      <button id="cr-submit-btn" onclick="submitCreditRequest()" style="flex:2;padding:9px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer;">Enviar Solicitação</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== FIREBASE =====================
+const firebaseConfig = {
+  apiKey:            "AIzaSyBLzNJGmVyg1eR4MnJa47YdOO3mAHfng3E",
+  authDomain:        "fortune-odds.firebaseapp.com",
+  projectId:         "fortune-odds",
+  storageBucket:     "fortune-odds.firebasestorage.app",
+  messagingSenderId: "65858083192",
+  appId:             "1:65858083192:web:13b907acac1e1102f6d08d"
+};
+const ADMIN_EMAILS = ["ellen.dayse@institutoinovar.net","micaelopes32@gmail.com"];
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ===================== STATE =====================
+let currentUser = null;
+let userCredits = 0;
+let slip = null;         // {evId, label, odd, selection}
+let activeCat  = 'all';
+let dateFilt   = 'all';
+let betsUnsub  = null;
+let allBets    = [];
+let multiSlip  = [];        // [{evId,selIdx,label,odd,evLabel,iso}]
+let betMode    = 'acumulador'; // 'acumulador' only
+let systemN    = 2;         // mínimo de acertos para sistema
+
+// ===================== STRENGTH TABLE =====================
+const STR = {
+  'brasil':0.88,'argentina':0.87,'franca':0.85,'inglaterra':0.83,'espanha':0.82,
+  'alemanha':0.80,'portugal':0.79,'holanda':0.78,'italia':0.75,'belgica':0.76,
+  'croacia':0.73,'uruguai':0.72,'colombia':0.70,'mexico':0.68,'chile':0.67,
+  'eua':0.67,'japao':0.66,'marrocos':0.65,'polonia':0.65,'senegal':0.64,
+  'australia':0.63,'canada':0.63,'coreia do sul':0.65,'equador':0.63,
+  'peru':0.62,'ira':0.62,'tunicsia':0.60,'arabia saudita':0.60,'camaroes':0.60,
+  'gana':0.60,'costa rica':0.59,'bolivia':0.55,'austrakia':0.63,
+  'river plate':0.78,'boca juniors':0.75,'nacional':0.65,'ldu':0.63,
+  'flamengo':0.82,'palmeiras':0.80,'atletico-mg':0.76,'atletico mg':0.76,
+  'gremio':0.72,'corinthians':0.70,'internacional':0.70,'sao paulo':0.68,
+  'fluminense':0.67,'santos':0.64,'cruzeiro':0.63,'botafogo':0.65,
+  'vasco':0.62,'bahia':0.60,'fortaleza':0.61,'athletico-pr':0.63,
+  'bragantino':0.62,'athletico pr':0.63
+};
+function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
+function getStr(name){
+  const n=norm(name);
+  for(const[k,v] of Object.entries(STR)){if(n===k||n.includes(k)||k.includes(n))return v;}
+  return 0.58;
+}
+function p2o(p,vig=0.05){return Math.max(1.01,Math.round(100/(p*(1+vig)))/100);}
+function genOdds(h,a){
+  const sh=getStr(h)+0.06,sa=getStr(a),tot=sh+sa+0.28;
+  const ph=sh/tot,pd=0.28/tot,pa=sa/tot;
+  return [p2o(ph),p2o(pd),p2o(pa)];
+}
+function probsFrom(h,a){
+  const sh=getStr(h)+0.06,sa=getStr(a),tot=sh+sa+0.28;
+  return [sh/tot,0.28/tot,sa/tot];
+}
+function simRes(probs){let r=Math.random(),acc=0;for(let i=0;i<probs.length;i++){acc+=probs[i];if(r<=acc)return i;}return probs.length-1;}
+function isLocked(iso){if(!iso)return false;try{return Date.now()>=new Date(iso).getTime()+15*60*1000;}catch{return false;}}
+
+// ===================== EVENTS DATA =====================
+const EVENTS = [
+  // Copa do Mundo 2026 — carregada via ESPN API (ver loadESPNData abaixo)
+
+  // Série A — carregada via ESPN API em tempo real
+
+    // ======== POLÍTICA — MARANHÃO & SÃO LUÍS ========
+  {id:'p01',cat:'Politica',isPol:true,comp:'Eleições Maranhão 2026',round:'Governador — 1º Turno',
+   title:'Governador do Maranhão — Quem vence o 1º turno?',
+   opts:['Candidato A (situação)','Candidato B (oposição)','Vai para 2º turno'],
+   probs:[0.22,0.18,0.60],iso:'2026-10-04T07:00:00-03:00',status:'scheduled'},
+  {id:'p02',cat:'Politica',isPol:true,comp:'Eleições Maranhão 2026',round:'Governador — 2º Turno',
+   title:'Governador do Maranhão — Quem vence o 2º turno?',
+   opts:['Candidato A (situação)','Candidato B (oposição)'],
+   probs:[0.54,0.46],iso:'2026-10-25T07:00:00-03:00',status:'scheduled'},
+  {id:'p03',cat:'Politica',isPol:true,comp:'Eleições Maranhão 2026',round:'Senado Federal',
+   title:'Senado — MA: quem representa o Maranhão?',
+   opts:['Candidato situação','Candidato oposição','Candidato independente'],
+   probs:[0.40,0.35,0.25],iso:'2026-10-04T07:00:00-03:00',status:'scheduled'},
+  {id:'p04',cat:'Politica',isPol:true,comp:'Eleições São Luís 2026',round:'Câmara Federal',
+   title:'Deputado Federal mais votado de São Luís',
+   opts:['Candidato PT/aliados','Candidato PL/direita','Candidato centro/MDB'],
+   probs:[0.38,0.32,0.30],iso:'2026-10-04T07:00:00-03:00',status:'scheduled'},
+  {id:'p05',cat:'Politica',isPol:true,comp:'Eleições São Luís 2026',round:'Assembleia Legislativa',
+   title:'Partido com mais deputados estaduais pelo MA',
+   opts:['PT e aliados','PL e direita','MDB e centro'],
+   probs:[0.35,0.30,0.35],iso:'2026-10-04T07:00:00-03:00',status:'scheduled'},
+  {id:'p06',cat:'Politica',isPol:true,comp:'Cenário Maranhão 2026',round:'Economia',
+   title:'PIB do Maranhão cresce acima da média nacional em 2026?',
+   opts:['Sim, cresce mais','Cresce igual','Cresce menos'],
+   probs:[0.35,0.30,0.35],iso:'2026-12-31T07:00:00-03:00',status:'scheduled'},
+  {id:'p07',cat:'Politica',isPol:true,comp:'Cenário São Luís 2026',round:'Infraestrutura',
+   title:'Porto do Itaqui bate recorde de movimentação em 2026?',
+   opts:['Sim, recorde','Crescimento sem recorde','Queda na movimentação'],
+   probs:[0.42,0.38,0.20],iso:'2026-12-31T07:00:00-03:00',status:'scheduled'},
+  {id:'p08',cat:'Politica',isPol:true,comp:'Cenário São Luís 2026',round:'Turismo',
+   title:'São Luís recebe mais de 1 milhão de turistas em 2026?',
+   opts:['Sim, supera 1 milhão','Entre 800 mil e 1 milhão','Abaixo de 800 mil'],
+   probs:[0.40,0.40,0.20],iso:'2026-12-31T07:00:00-03:00',status:'scheduled'},
+];
+
+// Attach computed odds to non-political events
+EVENTS.forEach(ev=>{
+  if(!ev.isPol){
+    ev.odds = genOdds(ev.home.n, ev.away.n);
+  } else {
+    ev.odds = ev.probs.map(p=>p2o(p));
+  }
+});
+
+// ===================== DATE HELPERS =====================
+function getToday(){const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate());}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function fmtDate(iso){
+  const d=new Date(iso);
+  const today=getToday();
+  const tom=new Date(today.getTime()+86400000);
+  const dDay=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  if(dDay.getTime()===today.getTime()) return 'Hoje';
+  if(dDay.getTime()===tom.getTime()) return 'Amanhã';
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+function isToday(iso){const d=new Date(iso),n=getToday();const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate());return dd.getTime()===n.getTime();}
+function isTomorrow(iso){const d=new Date(iso),n=getToday(),t=new Date(n.getTime()+86400000);const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate());return dd.getTime()===t.getTime();}
+function isThisWeek(iso){const d=new Date(iso),now=new Date();const diff=d-now;return diff>=-86400000&&diff<=7*86400000;}
+
+// ===================== FILTER =====================
+function matchesDateFilter(ev){
+  if(dateFilt==='all') return true;
+  if(dateFilt==='live') return ev.status==='live';
+  if(dateFilt==='today') return isToday(ev.iso);
+  if(dateFilt==='tomorrow') return isTomorrow(ev.iso);
+  if(dateFilt==='week') return isThisWeek(ev.iso);
+  return true;
+}
+function matchesSearch(ev){
+  const q=document.getElementById('srch-input').value.trim().toLowerCase();
+  if(!q) return true;
+  const hay=[ev.comp,ev.round||'',ev.title||'',ev.home?ev.home.n:'',ev.away?ev.away.n:''].join(' ').toLowerCase();
+  return hay.includes(q);
+}
+function getFilteredEvents(){
+  return EVENTS.filter(ev=>{
+    if(activeCat==='ranking'||activeCat==='admin') return false;
+    if(activeCat==='live-side') return ev.status==='live';
+    if(activeCat!=='all' && ev.cat!==activeCat) return false;
+    if(!matchesDateFilter(ev)) return false;
+    if(!matchesSearch(ev)) return false;
+    return true;
+  });
+}
+
+// ===================== RENDER =====================
+function badge(ev){
+  if(ev.status==='live') return '<span class="bdg live">🔴 AO VIVO</span>';
+  if(ev.status==='finished') return '<span class="bdg done">Encerrado</span>';
+  if(isLocked(ev.iso)) return '<span class="bdg lock">🔒 Travado</span>';
+  if(isToday(ev.iso)) return '<span class="bdg open">Hoje</span>';
+  if(isTomorrow(ev.iso)) return '<span class="bdg soon">Amanhã</span>';
+  return '';
+}
+
+function scoreClass(ev,side){
+  if(!ev.score) return '';
+  if(side==='h'&&ev.score.h>ev.score.a) return ' win';
+  if(side==='a'&&ev.score.a>ev.score.h) return ' win';
+  return '';
+}
+
+function renderOdds(ev){
+  const locked=ev.status==='finished'||isLocked(ev.iso);
+  if(ev.isPol){
+    return ev.opts.map((opt,i)=>{
+      const o=ev.odds[i];
+      const sel=(betMode==='simples'?(slip&&slip.evId===ev.id&&slip.selIdx===i):multiSlip.some(s=>s.evId===ev.id&&s.selIdx===i));
+      const cls=locked?'lck':sel?'sel':'';
+      return `<div class="ob-w"><div class="ob-lbl">${opt}</div><button class="ob ${cls}" ${locked?'disabled':''} onclick="selectBet('${ev.id}',${i},'${opt.replace(/'/g,"\\'")}',${o})">${o.toFixed(2)}</button></div>`;
+    }).join('');
+  }
+  const [oh,od,oa]=ev.odds;
+  const r=ev.score;
+  function cls(i){
+    if(betMode==='simples'?(slip&&slip.evId===ev.id&&slip.selIdx===i):multiSlip.some(s=>s.evId===ev.id&&s.selIdx===i)) return 'sel';
+    if(locked&&r){
+      if(i===0&&r.h>r.a) return 'win';
+      if(i===1&&r.h===r.a) return 'drw';
+      if(i===2&&r.a>r.h) return 'win';
+      return 'lck';
+    }
+    if(locked) return 'lck';
+    return '';
+  }
+  return `
+    <div class="ob-w"><div class="ob-lbl">${ev.home.n}</div><button class="ob ${cls(0)}" ${locked?'disabled':''} onclick="selectBet('${ev.id}',0,'${ev.home.n.replace(/'/g,"\\'")}',${oh})">${oh.toFixed(2)}</button></div>
+    <div class="ob-w"><div class="ob-lbl">Empate</div><button class="ob ${cls(1)}" ${locked?'disabled':''} onclick="selectBet('${ev.id}',1,'Empate',${od})">${od.toFixed(2)}</button></div>
+    <div class="ob-w"><div class="ob-lbl">${ev.away.n}</div><button class="ob ${cls(2)}" ${locked?'disabled':''} onclick="selectBet('${ev.id}',2,'${ev.away.n.replace(/'/g,"\\'")}',${oa})">${oa.toFixed(2)}</button></div>`;
+}
+
+function renderSoccerCard(ev){
+  const sc=ev.score;
+  return `
+  <div class="ev-card" id="ev-${ev.id}">
+    <div class="ev-top">
+      <div class="ev-time">
+        <div class="tt">${fmtTime(ev.iso)}</div>
+        <div class="dd">${fmtDate(ev.iso)}</div>
+      </div>
+      <div class="ev-teams">
+        <div class="tr">
+          <span class="tf">${ev.home.f}</span>
+          <span class="tn">${ev.home.n}</span>
+          ${sc?`<span class="ts${scoreClass(ev,'h')}">${sc.h}</span>`:''}
+        </div>
+        <div class="tr">
+          <span class="tf">${ev.away.f}</span>
+          <span class="tn">${ev.away.n}</span>
+          ${sc?`<span class="ts${scoreClass(ev,'a')}">${sc.a}</span>`:''}
+        </div>
+      </div>
+      ${badge(ev)}
+    </div>
+    <div class="odds-row">${renderOdds(ev)}</div>
+  </div>`;
+}
+
+function renderPolCard(ev){
+  return `
+  <div class="ev-card" id="ev-${ev.id}">
+    <div class="ev-top">
+      <div class="ev-time">
+        <div class="tt">${fmtDate(ev.iso)}</div>
+      </div>
+      <div class="ev-teams">
+        <div class="pol-title">${ev.title}</div>
+      </div>
+      ${badge(ev)}
+    </div>
+    <div class="odds-row">${renderOdds(ev)}</div>
+  </div>`;
+}
+
+function renderEvents(){
+  if(activeCat==='ranking'){showRanking();return;}
+  if(activeCat==='admin'){showAdmin();return;}
+  const area=document.getElementById('events-area');
+  const filtered=getFilteredEvents();
+  if(filtered.length===0){area.innerHTML='<div class="no-ev">Nenhum evento encontrado para os filtros selecionados.</div>';return;}
+  // Group by competition
+  const groups={};
+  filtered.forEach(ev=>{
+    const key=ev.comp+'||'+(ev.round||'');
+    if(!groups[key]) groups[key]={comp:ev.comp,round:ev.round||'',events:[]};
+    groups[key].events.push(ev);
+  });
+  let html='';
+  for(const [,g] of Object.entries(groups)){
+    const cards=g.events.map(ev=>ev.isPol?renderPolCard(ev):renderSoccerCard(ev)).join('');
+    html+=`<div class="comp-grp">
+      <div class="comp-hdr"><span>${compIcon(g.comp)}</span><span class="cn">${g.comp}</span><span class="cr">${g.round}</span></div>
+      ${cards}
+    </div>`;
+  }
+  area.innerHTML=html;
+}
+
+function compIcon(comp){
+  if(comp.includes('Copa do Mundo')) return '🌍';
+  if(comp.includes('Série A')||comp.includes('Brasileirão')) return '🇧🇷';
+  if(comp.includes('Copa do Brasil')) return '🏆';
+  if(comp.includes('Libertadores')) return '🌎';
+  if(comp.includes('Eleições')||comp.includes('Cenário')||comp.includes('Congresso')) return '🗳️';
+  return '⚽';
+}
+
+function updateCounts(){
+  const cats=['Copa','SerieA','Politica'];
+  let total=0;
+  cats.forEach(c=>{
+    const n=EVENTS.filter(e=>e.cat===c&&e.status!=='finished').length;
+    const el=document.getElementById('cnt-'+c);
+    if(el)el.textContent=n;
+    total+=n;
+  });
+  const el=document.getElementById('cnt-all');
+  if(el)el.textContent=total;
+  const live=EVENTS.filter(e=>e.status==='live').length;
+  const lel=document.getElementById('cnt-live');
+  if(lel)lel.textContent=live||'0';
+}
+
+// ===================== CATEGORY / FILTER CONTROLS =====================
+function setCategory(cat,el){
+  activeCat=cat;
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  const evArea=document.getElementById('events-area');
+  const rankArea=document.getElementById('ranking-area');
+  const admArea=document.getElementById('admin-area');
+  const fbar=document.getElementById('filter-bar');
+  evArea.style.display=(cat==='ranking'||cat==='admin')?'none':'block';
+  rankArea.style.display=cat==='ranking'?'block':'none';
+  const isAdminUser=currentUser&&ADMIN_EMAILS.includes(currentUser.email);
+  admArea.style.display=(cat==='admin'&&isAdminUser)?'block':'none';
+  fbar.style.display=(cat==='ranking'||cat==='admin')?'none':'flex';
+  if(cat==='ranking')showRanking();
+  else if(cat==='admin')showAdmin();
+  else renderEvents();
+}
+
+function setDateFilter(f,el){
+  dateFilt=f;
+  document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  renderEvents();
+}
+
+// ===================== BET SLIP =====================
+function selectBet(evId,selIdx,label,odd){
+  const ev=EVENTS.find(e=>e.id===evId);
+  if(!ev) return;
+  if(isLocked(ev.iso)) return;
+  if(ev.status==='finished') return;
+  const evLabel=ev.isPol?ev.title:(ev.home.n+' x '+ev.away.n);
+  if(betMode==='simples'){
+    if(slip&&slip.evId===evId&&slip.selIdx===selIdx) slip=null;
+    else slip={evId,selIdx,label,odd,evLabel,iso:ev.iso};
+  } else {
+    const idx=multiSlip.findIndex(s=>s.evId===evId);
+    if(idx>=0){
+      if(multiSlip[idx].selIdx===selIdx) multiSlip.splice(idx,1);
+      else multiSlip[idx]={evId,selIdx,label,odd,evLabel,iso:ev.iso};
+    } else {
+      multiSlip.push({evId,selIdx,label,odd,evLabel,iso:ev.iso});
+    }
+  }
+  renderSlip();
+  renderEvents();
+}
+function setBetMode(mode){
+  betMode=mode;
+  if(mode==='simples'){multiSlip=[];}
+  else{slip=null;}
+  renderSlip();
+  renderEvents();
+}
+function totalMultiplasStake(stake){return stake*multiSlip.length;}
+function setSystemN(n){systemN=parseInt(n);renderSlip();}
+// Combinations helper: C(arr, k)
+function getCombinations(arr,k){
+  if(k>arr.length||k<=0) return [];
+  if(k===arr.length) return [arr.slice()];
+  if(k===1) return arr.map(e=>[e]);
+  const res=[];
+  for(let i=0;i<=arr.length-k;i++){
+    const rest=getCombinations(arr.slice(i+1),k-1);
+    rest.forEach(r=>res.push([arr[i],...r]));
+  }
+  return res;
+}
+function multiCombinedOdd(){return multiSlip.reduce((acc,s)=>acc*s.odd,1);}
+function systemPotential(stake){
+  if(multiSlip.length<2) return 0;
+  const n=Math.min(systemN,multiSlip.length);
+  const combos=getCombinations(multiSlip,n);
+  const perCombo=stake/combos.length;
+  const avgReturn=combos.reduce((sum,c)=>{
+    const co=c.reduce((p,s)=>p*s.odd,1);
+    return sum+perCombo*co;
+  },0);
+  return avgReturn;
+}
+
+function renderSlip(){
+  const el=document.getElementById('slip-inner');
+  const modeHtml=``;
+
+  if(betMode==='simples'){
+    if(!slip){el.innerHTML=modeHtml+'<div class="slip-empty">Selecione uma cota para apostar</div>';return;}
+    el.innerHTML=modeHtml+`
+      <div class="slip-c">
+        <div class="slip-ev">${slip.evLabel}</div>
+        <div class="slip-sel">${slip.label}</div>
+        <div class="slip-odd">Cota: ${slip.odd.toFixed(2)}</div>
+      </div>
+      <div class="sl">Valor da aposta (R$)</div>
+      <input class="si" id="stake-in" type="number" min="1" max="${userCredits}" value="10" oninput="updateReturn()">
+      <div class="qs-r">
+        <button class="qs" onclick="setStake(5)">R$5</button>
+        <button class="qs" onclick="setStake(10)">R$10</button>
+        <button class="qs" onclick="setStake(25)">R$25</button>
+        <button class="qs" onclick="setStake(50)">R$50</button>
+      </div>
+      <div class="ret-box"><span class="ret-lbl">Retorno potencial</span><span class="ret-val" id="ret-val">R$ 0,00</span></div>
+      <button class="cbtn" onclick="confirmBet()">Confirmar Aposta</button>
+      <button class="xbtn" onclick="clearSlip()">Cancelar</button>`;
+    updateReturn();
+    return;
+  }
+
+  // Múltiplas (apostas independentes simultâneas)
+  if(betMode==='multiplas'){
+    if(multiSlip.length===0){
+      el.innerHTML=modeHtml+'<div class="slip-empty">Selecione os eventos para apostar simultaneamente</div>';
+      return;
+    }
+    const selList=multiSlip.map((s,i)=>`
+      <div class="ms-item">
+        <div class="ms-ev">${s.evLabel}</div>
+        <div class="ms-sel">${s.label} <span class="ms-odd">@${s.odd.toFixed(2)}</span></div>
+        <button class="ms-del" onclick="removeMultiSel(${i})">✕</button>
+      </div>`).join('');
+    el.innerHTML=modeHtml+`
+      <div class="ms-list">${selList}</div>
+      <div class="sl">Valor por aposta (R$)</div>
+      <input class="si" id="stake-in" type="number" min="1" max="${userCredits}" value="10" oninput="updateReturn()">
+      <div class="qs-r">
+        <button class="qs" onclick="setStake(5)">R$5</button>
+        <button class="qs" onclick="setStake(10)">R$10</button>
+        <button class="qs" onclick="setStake(25)">R$25</button>
+        <button class="qs" onclick="setStake(50)">R$50</button>
+      </div>
+      <div class="ret-box"><span class="ret-lbl">Total gasto (${multiSlip.length}x)</span><span class="ret-val" id="total-val">R$ 0,00</span></div>
+      <div class="ret-box"><span class="ret-lbl">Retorno potencial</span><span class="ret-val" id="ret-val">R$ 0,00</span></div>
+      <button class="cbtn" onclick="confirmBet()">Confirmar ${multiSlip.length} Aposta${multiSlip.length>1?'s':''}</button>
+      <button class="xbtn" onclick="clearSlip()">Cancelar</button>`;
+    updateReturn();
+    return;
+  }
+
+  // Apostas individuais por jogo
+  if(multiSlip.length===0){
+    el.innerHTML='<div class="slip-empty">Selecione os jogos para apostar</div>';
+    return;
+  }
+  const selList=multiSlip.map((s,i)=>{
+    const stk=parseFloat(s.stake)||0;
+    const vals=[10,50,100,500];
+    const btns=vals.map(v=>`<button onclick="updateSelStake(${i},${v})" style="flex:1;padding:4px 0;background:${stk===v?'var(--grn)':'#1a2133'};border:1px solid ${stk===v?'var(--grn)':'#2a3550'};color:${stk===v?'#fff':'var(--dim)'};border-radius:4px;font-size:.74rem;font-weight:600;cursor:pointer">R$${v}</button>`).join('');
+    return `
+    <div class="ms-item">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="ms-ev">${s.evLabel}</div>
+          <div class="ms-sel">${s.label} <span class="ms-odd">@${s.odd.toFixed(2)}</span></div>
+        </div>
+        <button class="ms-del" onclick="removeMultiSel(${i})">✕</button>
+      </div>
+      <div style="display:flex;gap:4px;margin-top:6px">${btns}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:.74rem">
+        <span style="color:var(--mut)">Apostado: <strong style="color:${stk?'#fff':'var(--mut)'}">${stk?'R$'+stk.toFixed(2):'—'}</strong></span>
+        <span id="sel-ret-${i}" style="color:${stk?'var(--grn)':'var(--mut)'}">${stk?'→ R$'+(stk*s.odd).toFixed(2):'—'}</span>
+      </div>
+    </div>`;}).join('');
+  const totalStk=multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||0),0);
+  const totalRet=multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||0)*s.odd,0);
+  el.innerHTML=`
+    <div class="ms-list">${selList}</div>
+    <div class="ret-box" style="margin-top:8px"><span class="ret-lbl">Total a apostar</span><span class="ret-val" id="slip-total-stk">R$ ${totalStk.toFixed(2).replace('.',',')}</span></div>
+    <div class="ret-box"><span class="ret-lbl">Retorno potencial</span><span class="ret-val" style="color:var(--grn)" id="slip-total-ret">R$ ${totalRet.toFixed(2).replace('.',',')}</span></div>
+    <button class="cbtn" onclick="confirmBet()">Confirmar ${multiSlip.length} Aposta${multiSlip.length>1?'s':''}</button>
+    <button class="xbtn" onclick="clearSlip()">Cancelar</button>`;
+}
+function removeMultiSel(i){multiSlip.splice(i,1);renderSlip();renderEvents();}
+function updateSelStake(i,v){
+  if(multiSlip[i]) multiSlip[i].stake=parseFloat(v)||0;
+  // Re-renderiza o slip para atualizar botões destacados e totais
+  renderSlip();
+}
+function setAllStakes(v){multiSlip.forEach(s=>s.stake=v);renderSlip();}
+
+function setStake(v){const el=document.getElementById('stake-in');if(el){el.value=v;updateReturn();}}
+function updateReturn(){
+  const el=document.getElementById('stake-in');
+  const rv=document.getElementById('ret-val');
+  if(!el||!rv) return;
+  const s=parseFloat(el.value)||0;
+  let ret=0;
+  if(betMode==='simples'&&slip) ret=s*slip.odd;
+  else if(betMode==='multiplas'&&multiSlip.length){
+    ret=multiSlip.reduce((sum,sel)=>sum+s*sel.odd,0);
+    const tv=document.getElementById('total-val');
+    if(tv) tv.textContent='R$ '+(s*multiSlip.length).toFixed(2).replace('.',',');
+  }
+  else if(betMode==='acumulador'&&multiSlip.length) ret=s*multiCombinedOdd();
+  else if(betMode==='sistema'&&multiSlip.length>=2) ret=systemPotential(s);
+  rv.textContent='R$ '+ret.toFixed(2).replace('.',',');
+}
+function clearSlip(){slip=null;multiSlip=[];renderSlip();renderEvents();}
+
+// ─────────────────────────────────────────────────────────────
+// Verifica se um evento já terminou (horário + 2h de margem)
+function isEventOver(iso){
+  if(!iso) return false;
+  return new Date() >= new Date(new Date(iso).getTime()+2*60*60*1000);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Resolve apostas pendentes cujos eventos já passaram
+
+// Busca evento por ID com retrocompatibilidade (antigo: espn-Cat-INDEX-ESPNID, novo: espn-Cat-ESPNID)
+function findEvById(evId){
+  let ev=EVENTS.find(e=>e.id===evId);
+  if(ev) return ev;
+  // Backward compat: extrai ESPN ID do formato antigo espn-Cat-INDEX-ESPNID
+  if(evId){
+    const parts=evId.split('-');
+    if(parts.length>=4){
+      const espnId=parts.slice(3).join('-');
+      ev=EVENTS.find(e=>e.id===`espn-${parts[1]}-${espnId}`);
+      if(ev) return ev;
+    }
+    // Tenta match pelo sufixo ESPN ID
+    ev=EVENTS.find(e=>{
+      const ep=e.id.split('-');
+      return ep.length>=3 && evId.endsWith('-'+ep.slice(2).join('-'));
+    });
+  }
+  return ev||null;
+}
+
+// Retorna resultado real de um evento ESPN finalizado: 0=casa, 1=empate, 2=fora
+function getActualResult(ev){
+  if(!ev) return null;
+  if(ev.status==='finished' && ev.score!=null){
+    if(ev.score.h>ev.score.a) return 0;
+    if(ev.score.h===ev.score.a) return 1;
+    return 2;
+  }
+  return null;
+}
+
+function simSelResult(sel){
+  const ev=findEvById(sel.evId);
+  // Usa placar real da ESPN se disponível
+  const actual=getActualResult(ev);
+  if(actual!==null) return actual===sel.selIdx;
+  // Fallback: simulação por probabilidade
+  let probs;
+  if(ev&&ev.isPol&&ev.probs) probs=ev.probs;
+  else if(ev&&!ev.isPol){
+    const sh=getStr(ev.home?.n||'')+0.06;
+    const sa=getStr(ev.away?.n||'');
+    const tot=sh+sa+0.28;
+    probs=[sh/tot,0.28/tot,sa/tot];
+  } else {
+    probs=[0.34,0.33,0.33];
+  }
+  return simRes(probs)===sel.selIdx;
+}
+
+function isBetResolvable(b){
+  if(b.result!=='pending') return false;
+  // Verificação por tempo (2h após o jogo)
+  if(b.eventIso&&isEventOver(b.eventIso)) return true;
+  // Verificação por status ESPN real (jogo encerrado)
+  if(b.betType==='acumulador'&&b.selections?.length){
+    return b.selections.every(sel=>{
+      const ev=findEvById(sel.evId);
+      return ev?.status==='finished'||(sel.iso&&isEventOver(sel.iso));
+    });
+  }
+  if(b.eventId){
+    const ev=findEvById(b.eventId);
+    if(ev?.status==='finished') return true;
+  }
+  return false;
+}
+
+async function resolvePendingBets(){
+  if(!currentUser||!allBets.length) return;
+  const pending=allBets.filter(isBetResolvable);
+  if(!pending.length) return;
+
+  let totalPayout=0;
+  const batch=db.batch();
+
+  for(const bet of pending){
+    let won=false, payout=0;
+
+    if(bet.betType==='acumulador'&&bet.selections?.length){
+      // All selections must win
+      const allWon=bet.selections.every(sel=>simSelResult(sel));
+      won=allWon;
+      payout=won?Math.round(bet.stake*(bet.combinedOdd||1)*100)/100:0;
+    } else if(bet.betType==='sistema'&&bet.selections?.length){
+      // Sistema: count correct, resolve combinations
+      const correct=bet.selections.filter(sel=>simSelResult(sel));
+      const k=bet.systemN||2;
+      const winCombos=getCombinations(correct,Math.min(k,correct.length));
+      const allCombos=getCombinations(bet.selections,Math.min(k,bet.selections.length));
+      if(correct.length>=k&&allCombos.length>0){
+        won=true;
+        const perCombo=bet.stake/allCombos.length;
+        payout=winCombos.reduce((sum,combo)=>{
+          const co=combo.reduce((p,s)=>p*s.odd,1);
+          return sum+Math.round(perCombo*co*100)/100;
+        },0);
+      }
+    } else {
+      // Aposta simples legada
+      const evSimple=findEvById(bet.eventId||'');
+      const actualSimple=getActualResult(evSimple);
+      if(actualSimple!==null){
+        won=(actualSimple===bet.selIdx);
+      } else {
+        let probs;
+        if(bet.isPol&&bet.polProbs) probs=bet.polProbs;
+        else{
+          const sh=getStr(bet.homeTeam||'')+0.06;
+          const sa=getStr(bet.awayTeam||'');
+          const tot=sh+sa+0.28;
+          probs=[sh/tot,0.28/tot,sa/tot];
+        }
+        won=(simRes(probs)===bet.selIdx);
+      }
+      payout=won?Math.round(bet.stake*(bet.odd||1)*100)/100:0;
+    }
+
+    const betRef=db.collection('bets').doc(bet._id);
+    batch.update(betRef,{
+      result:      won?'won':'lost',
+      payout:      payout,
+      creditsAfter: bet.creditsBefore - bet.stake + (won?payout:0),
+      resolvedAt:  firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    if(won) totalPayout+=payout;
+  }
+
+  if(totalPayout>0){
+    const userRef=db.collection('users').doc(currentUser.uid);
+    batch.update(userRef,{
+      credits:   firebase.firestore.FieldValue.increment(totalPayout),
+      totalWon:  firebase.firestore.FieldValue.increment(totalPayout),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  try{
+    await batch.commit();
+    const snap=await db.collection('users').doc(currentUser.uid).get();
+    if(snap.exists){userCredits=snap.data().credits??userCredits;updateHdrCredits();}
+    console.log(`${pending.length} aposta(s) resolvida(s). Ganhos: R$${totalPayout.toFixed(2)}`);
+  }catch(e){
+    console.error('Erro ao resolver apostas pendentes:',e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+async function confirmBet(){
+  if(!currentUser) return;
+  // Multi-bet path
+  if(betMode==='multiplas'){
+    await confirmMultiplasBets();
+    return;
+  }
+  if(betMode!=='simples'){
+    await confirmIndividualBets();
+    return;
+  }
+  if(!slip) return;
+  const stakeEl=document.getElementById('stake-in');
+  const stake=parseFloat(stakeEl?.value)||0;
+  if(stake<1){alert('Valor mínimo: R$ 1,00');return;}
+  if(stake>userCredits){showCreditRequestModal();return;}
+  const ev=EVENTS.find(e=>e.id===slip.evId);
+  if(!ev||isLocked(ev.iso)){alert('Aposta fechada!');return;}
+
+  // Bloquear botão
+  const btn=document.querySelector('.cbtn');
+  if(btn){btn.disabled=true;btn.textContent='💾 Salvando...';}
+
+  // Deduzir apenas o stake agora; resultado só depois do jogo
+  const newCred=Math.round((userCredits-stake)*100)/100;
+
+  try{
+    const batch=db.batch();
+    const betRef=db.collection('bets').doc();
+
+    batch.set(betRef,{
+      userId:        currentUser.uid,
+      email:         currentUser.email,
+      eventId:       slip.evId,
+      eventLabel:    slip.evLabel,
+      eventIso:      ev.iso,                    // horário do jogo — usado para resolver
+      competition:   ev.comp||'Simulação',
+      round:         ev.round||'',
+      selection:     slip.label,
+      selIdx:        slip.selIdx,               // índice da seleção para comparar resultado
+      odd:           slip.odd,
+      stake:         stake,
+      result:        'pending',                 // aguardando o jogo
+      payout:        0,
+      homeTeam:      ev.home?.n||'',
+      awayTeam:      ev.away?.n||'',
+      isPol:         ev.isPol||false,
+      polProbs:      ev.isPol?(ev.probs||null):null,
+      creditsBefore: userCredits,
+      creditsAfter:  newCred,
+      createdAt:     firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    const userRef=db.collection('users').doc(currentUser.uid);
+    batch.set(userRef,{
+      email:      currentUser.email,
+      credits:    newCred,
+      totalBets:  firebase.firestore.FieldValue.increment(1),
+      totalStake: firebase.firestore.FieldValue.increment(stake),
+      updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+
+    await batch.commit();
+
+    userCredits=newCred;
+    updateHdrCredits();
+    slip=null;
+    renderSlip();
+    renderEvents();
+    showPendingModal(ev, stake);
+
+  }catch(err){
+    console.error('Erro ao gravar aposta:',err);
+    if(btn){btn.disabled=false;btn.textContent='Confirmar Aposta';}
+    alert('❌ Erro ao salvar no Firebase. Verifique sua conexão.\n'+err.message);
+  }
+}
+
+
+async function confirmMultiplasBets(){
+  if(!currentUser) return;
+  if(multiSlip.length<1){alert('Adicione pelo menos 1 evento!');return;}
+  for(const s of multiSlip){
+    const ev=EVENTS.find(e=>e.id===s.evId);
+    if(!ev||isLocked(ev.iso)){alert('Um dos jogos já está fechado!');return;}
+  }
+  const stakeEl=document.getElementById('stake-in');
+  const stake=parseFloat(stakeEl?.value)||0;
+  if(stake<1){alert('Valor mínimo: R$ 1,00 por aposta');return;}
+  const totalStake=Math.round(stake*multiSlip.length*100)/100;
+  if(totalStake>userCredits){showCreditRequestModal();return;}
+  const btn=document.querySelector('.cbtn');
+  if(btn){btn.disabled=true;btn.textContent='💾 Salvando...';}
+  try{
+    const batch=db.batch();
+    let creditBalance=userCredits;
+    for(const sel of multiSlip){
+      const ev=EVENTS.find(e=>e.id===sel.evId);
+      const newCred=Math.round((creditBalance-stake)*100)/100;
+      const betRef=db.collection('bets').doc();
+      batch.set(betRef,{
+        userId:currentUser.uid,email:currentUser.email,
+        eventId:sel.evId,eventLabel:sel.evLabel,eventIso:sel.iso,
+        competition:ev?.comp||'',round:ev?.round||'',
+        selection:sel.label,selIdx:sel.selIdx,odd:sel.odd,
+        stake:stake,result:'pending',payout:0,
+        homeTeam:ev?.home?.n||'',awayTeam:ev?.away?.n||'',
+        isPol:ev?.isPol||false,polProbs:ev?.isPol?(ev?.probs||null):null,
+        creditsBefore:creditBalance,creditsAfter:newCred,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      creditBalance=newCred;
+    }
+    const userRef=db.collection('users').doc(currentUser.uid);
+    batch.set(userRef,{
+      email:currentUser.email,credits:creditBalance,
+      totalBets:firebase.firestore.FieldValue.increment(multiSlip.length),
+      totalStake:firebase.firestore.FieldValue.increment(totalStake),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+    await batch.commit();
+    userCredits=creditBalance;
+    updateHdrCredits();
+    document.getElementById('modal-title').textContent=`✅ ${multiSlip.length} apostas registradas!`;
+    document.getElementById('modal-body').textContent=
+      `R$ ${totalStake.toFixed(2)} debitados. Cada aposta será resolvida após o respectivo jogo.`;
+    document.getElementById('modal').style.display='flex';
+    multiSlip=[];slip=null;
+    renderSlip();renderEvents();
+  }catch(err){
+    console.error('Erro ao salvar apostas múltiplas:',err);
+    alert('Erro ao salvar: '+err.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=`Confirmar ${multiSlip.length||''} Apostas`;}
+  }
+}
+
+async function confirmIndividualBets(){
+  if(!currentUser) return;
+  if(multiSlip.length<1){alert('Selecione pelo menos 1 jogo!');return;}
+  for(const s of multiSlip){
+    const ev=EVENTS.find(e=>e.id===s.evId);
+    if(!ev||isLocked(ev.iso)){alert('Um dos jogos já está fechado para apostas!');return;}
+    if(!(parseFloat(s.stake)>=1)){alert(`Informe o valor da aposta em: ${s.evLabel}`);return;}
+  }
+  const totalStk=Math.round(multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||10),0)*100)/100;
+  if(totalStk>userCredits){showCreditRequestModal();return;}
+  const btn=document.querySelector('.cbtn');
+  if(btn){btn.disabled=true;btn.textContent='💾 Salvando...';}
+  try{
+    const batch=db.batch();
+    let bal=userCredits;
+    for(const sel of multiSlip){
+      const ev=EVENTS.find(e=>e.id===sel.evId);
+      const stake=Math.round((parseFloat(sel.stake)||10)*100)/100;
+      const newBal=Math.round((bal-stake)*100)/100;
+      batch.set(db.collection('bets').doc(),{
+        userId:currentUser.uid,email:currentUser.email,
+        eventId:sel.evId,eventLabel:sel.evLabel,eventIso:sel.iso,
+        competition:ev?.comp||'',round:ev?.round||'',
+        selection:sel.label,selIdx:sel.selIdx,odd:sel.odd,
+        stake,result:'pending',payout:0,
+        homeTeam:ev?.home?.n||'',awayTeam:ev?.away?.n||'',
+        isPol:ev?.isPol||false,polProbs:ev?.isPol?(ev?.probs||null):null,
+        creditsBefore:bal,creditsAfter:newBal,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      bal=newBal;
+    }
+    batch.set(db.collection('users').doc(currentUser.uid),{
+      email:currentUser.email,credits:bal,
+      totalBets:firebase.firestore.FieldValue.increment(multiSlip.length),
+      totalStake:firebase.firestore.FieldValue.increment(totalStk),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+    await batch.commit();
+    userCredits=bal;
+    updateHdrCredits();
+    const n=multiSlip.length;
+    multiSlip=[];slip=null;
+    renderSlip();renderEvents();
+    document.getElementById('modal-title').textContent=`✅ ${n} aposta${n>1?'s':''} registrada${n>1?'s':''}!`;
+    document.getElementById('modal-body').textContent=
+      `R$ ${totalStk.toFixed(2)} debitados. Cada aposta será resolvida após seu respectivo jogo.`;
+    document.getElementById('modal').style.display='flex';
+  }catch(err){
+    console.error('Erro:',err);
+    if(btn){btn.disabled=false;btn.textContent=`Confirmar ${multiSlip.length} Apostas`;}
+    alert('Erro ao salvar: '+err.message);
+  }
+}
+
+async function confirmMultiBet(){
+  if(!currentUser) return;
+  if(multiSlip.length<2){alert('Adicione pelo menos 2 eventos!');return;}
+  // Check none are locked
+  for(const s of multiSlip){
+    const ev=EVENTS.find(e=>e.id===s.evId);
+    if(!ev||isLocked(ev.iso)){alert('Um dos jogos já está fechado para apostas!');return;}
+  }
+  const stakeEl=document.getElementById('stake-in');
+  const stake=parseFloat(stakeEl?.value)||0;
+  if(stake<1){alert('Valor mínimo: R$ 1,00');return;}
+  if(stake>userCredits){showCreditRequestModal();return;}
+  const btn=document.querySelector('.cbtn');
+  if(btn){btn.disabled=true;btn.textContent='💾 Salvando...';}
+  const newCred=Math.round((userCredits-stake)*100)/100;
+  const combinedOdd=betMode==='acumulador'?multiCombinedOdd():0;
+  const sysK=betMode==='sistema'?Math.min(systemN,multiSlip.length):0;
+  const potentialPayout=betMode==='acumulador'?Math.round(stake*combinedOdd*100)/100:Math.round(systemPotential(stake)*100)/100;
+  // Last event ISO (for resolving when all are done)
+  const lastIso=multiSlip.reduce((latest,s)=>new Date(s.iso)>new Date(latest)?s.iso:latest,multiSlip[0].iso);
+  try{
+    const batch=db.batch();
+    const betRef=db.collection('bets').doc();
+    batch.set(betRef,{
+      userId:         currentUser.uid,
+      email:          currentUser.email,
+      betType:        betMode,          // 'acumulador'|'sistema'
+      selections:     multiSlip.map(s=>({evId:s.evId,evLabel:s.evLabel,selIdx:s.selIdx,label:s.label,odd:s.odd,iso:s.iso})),
+      systemN:        betMode==='sistema'?sysK:null,
+      combinedOdd:    combinedOdd||null,
+      potentialPayout:potentialPayout,
+      stake:          stake,
+      result:         'pending',
+      payout:         0,
+      eventIso:       lastIso,
+      creditsBefore:  userCredits,
+      creditsAfter:   newCred,
+      createdAt:      firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const userRef=db.collection('users').doc(currentUser.uid);
+    batch.set(userRef,{
+      email:     currentUser.email,
+      credits:   newCred,
+      totalBets: firebase.firestore.FieldValue.increment(1),
+      totalStake:firebase.firestore.FieldValue.increment(stake),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+    await batch.commit();
+    userCredits=newCred;
+    updateHdrCredits();
+    const nSels=multiSlip.length;
+    multiSlip=[];
+    slip=null;
+    renderSlip();
+    renderEvents();
+    // Show modal
+    document.getElementById('modal-title').textContent='⏳ Aposta registrada!';
+    const typeLabel=betMode==='acumulador'?`Acumulador (${nSels} jogos)`:`Sistema ${sysK} de ${nSels}`;
+    document.getElementById('modal-body').textContent=
+      `R$ ${stake.toFixed(2)} apostados. Retorno potencial: R$ ${potentialPayout.toFixed(2)}. Resultado após os jogos.`;
+    document.getElementById('modal').style.display='flex';
+  }catch(err){
+    console.error('Erro ao salvar aposta múltipla:',err);
+    alert('Erro ao salvar: '+err.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Confirmar Aposta';}
+  }
+}
+
+function showPendingModal(ev, stake){
+  const evTime=new Date(ev.iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('modal-title').className='';
+  document.getElementById('modal-title').style.color='var(--oddc)';
+  document.getElementById('modal-title').textContent='⏳ Aposta registrada!';
+  document.getElementById('modal-body').innerHTML=
+    `Evento: <strong>${ev.isPol?ev.title:(ev.home.n+' x '+ev.away.n)}</strong><br>`+
+    `Jogo em: <strong>${evTime}</strong><br><br>`+
+    `R$ <strong>${stake.toFixed(2).replace('.',',')}</strong> debitados do seu saldo.<br>`+
+    `O resultado será apurado automaticamente após o jogo.<br><br>`+
+    `Saldo atual: <strong>R$ ${userCredits.toFixed(2).replace('.',',')}</strong>`;
+  document.getElementById('modal').style.display='flex';
+}
+
+function showResultModal(won, bet){
+  document.getElementById('modal-title').style.color='';
+  document.getElementById('modal-title').className=won?'won':'lost';
+  document.getElementById('modal-title').textContent=won?'🎉 Você ganhou!':'😔 Não foi dessa vez';
+  document.getElementById('modal-body').innerHTML=
+    `<strong>${bet.eventLabel||''}</strong><br>Seleção: ${bet.selection} @ ${(bet.odd||0).toFixed(2)}<br><br>`+
+    (won?`Você ganhou <strong style="color:var(--grn)">R$ ${(bet.payout||0).toFixed(2).replace('.',',')}</strong>!`
+        :`Você perdeu <strong style="color:var(--red)">R$ ${(bet.stake||0).toFixed(2).replace('.',',')}</strong>.`)+
+    `<br><br>Saldo atual: <strong>R$ ${userCredits.toFixed(2).replace('.',',')}</strong>`;
+  document.getElementById('modal').style.display='flex';
+}
+
+function closeModal(){document.getElementById('modal').style.display='none';}
+
+// ─────────────────────────────────────────────────────────────
+// HISTORY
+function renderHistory(bets){
+  const el=document.getElementById('hist-inner');
+  if(!bets||bets.length===0){el.innerHTML='<div class="slip-empty">Nenhuma aposta ainda</div>';return;}
+  const now=Math.floor(Date.now()/1000);
+  const sorted=[...bets].sort((a,b)=>(b.createdAt?.seconds??now+9999)-(a.createdAt?.seconds??now+9999)).slice(0,50);
+  el.innerHTML=sorted.map(b=>{
+    const isPending=b.result==='pending';
+    const cls=isPending?'pending':b.result;
+    const resLine=isPending
+      ? '<div class="hi-res pending">⏳ Aguardando resultado</div>'
+      : `<div class="hi-res ${b.result}">${b.result==='won'?'+R$ '+b.payout.toFixed(2):'-R$ '+(b.stake||0).toFixed(2)}</div>`;
+    // Multi-bet
+    if(b.betType==='acumulador'||b.betType==='sistema'){
+      const sels=b.selections||[];
+      const typeLabel=b.betType==='acumulador'?`🔗 Acumulador (${sels.length}x)`:
+        `⚙️ Sistema ${b.systemN} de ${sels.length}`;
+      const selLines=sels.map(s=>`<div class="hi-sel" style="font-size:.73rem">${s.evLabel}: <b>${s.label}</b> @${(s.odd||0).toFixed(2)}</div>`).join('');
+      const combinedOdd=b.combinedOdd?`Cota: ${b.combinedOdd.toFixed(2)}`:
+        (b.potentialPayout?`Potencial: R$ ${b.potentialPayout.toFixed(2)}`:'');
+      return `<div class="hi ${cls}">
+        <div class="hi-ev" style="color:var(--oddc)">${typeLabel}</div>
+        ${selLines}
+        <div class="hi-sel" style="color:var(--mut);font-size:.7rem">R$ ${(b.stake||0).toFixed(2)} · ${combinedOdd}</div>
+        ${resLine}
+      </div>`;
+    }
+    return `<div class="hi ${cls}">
+      <div class="hi-ev">${b.eventLabel||'—'}</div>
+      <div class="hi-sel">${b.selection} @ ${(b.odd||0).toFixed(2)}</div>
+      ${resLine}
+    </div>`;
+  }).join('');
+  resolvePendingBets();
+}
+
+// ===================== RANKING =====================
+async function showRanking(){
+  const area=document.getElementById('ranking-area');
+  area.style.display='block';
+  document.getElementById('ranking-area').innerHTML='<div style="font-weight:700;color:var(--txt);margin-bottom:12px;">🏅 Ranking de Apostadores</div><div class="loading">Carregando...</div>';
+  try{
+    const snap=await db.collection('users').orderBy('credits','desc').limit(20).get();
+    const rows=snap.docs.map((d,i)=>{
+      const u=d.data();
+      const me=currentUser&&d.id===currentUser.uid;
+      return `<tr${me?' style="background:rgba(29,185,84,.05)"':''}>
+        <td style="color:${i<3?'var(--oddc)':'var(--mut)'};font-weight:700;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+        <td>${u.nome||u.email?.split('@')[0]||'—'}${me?' <span style="color:var(--grn);font-size:.68rem;">(você)</span>':''}</td>
+        <td style="color:var(--grn);font-weight:700;">R$ ${(u.credits||0).toFixed(2)}</td>
+        <td style="color:var(--mut);">${u.totalBets||0}</td>
+      </tr>`;
+    });
+    document.getElementById('ranking-area').innerHTML=`
+      <div style="font-weight:700;color:var(--txt);margin-bottom:12px;">🏅 Ranking de Apostadores</div>
+      <table class="rtbl"><thead><tr><th>#</th><th>Usuário</th><th>Saldo</th><th>Apostas</th></tr></thead>
+      <tbody>${rows.join('')}</tbody></table>`;
+  }catch(e){document.getElementById('ranking-area').innerHTML='<div class="loading">Erro ao carregar ranking.</div>';}
+}
+
+// ===================== ADMIN =====================
+let adminTab='bets';
+function switchAdminTab(tab){
+  adminTab=tab;
+  ['bets','credits','users'].forEach(t=>{
+    const btn=document.getElementById('adm-tab-'+t);
+    const sec=document.getElementById('adm-sec-'+t);
+    if(btn) btn.classList.toggle('on',t===tab);
+    if(sec) sec.style.display=t===tab?'block':'none';
+  });
+  if(tab==='credits') renderCreditRequests();
+  else if(tab==='users') renderAdminUsers();
+  else renderAdmin();
+}
+async function showAdmin(){
+  if(!currentUser||!ADMIN_EMAILS.includes(currentUser.email)){
+    document.getElementById('admin-area').style.display='none';
+    return;
+  }
+  switchAdminTab(adminTab||'bets');
+}
+async function renderAdmin(){
+  if(!currentUser||!ADMIN_EMAILS.includes(currentUser.email)) return;
+  const area=document.getElementById('admin-content');
+  area.innerHTML='<div class="loading">Carregando...</div>';
+  try{
+    const snap=await db.collection('bets').orderBy('createdAt','desc').limit(100).get();
+    const filterVal=document.getElementById('adm-filter').value;
+    const srch=(document.getElementById('adm-srch').value||'').toLowerCase();
+    let bets=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(filterVal!=='all') bets=bets.filter(b=>b.result===filterVal);
+    if(srch) bets=bets.filter(b=>(b.nome||b.email||'').toLowerCase().includes(srch)||(b.eventLabel||'').toLowerCase().includes(srch));
+    if(bets.length===0){area.innerHTML='<div class="no-ev">Nenhuma aposta encontrada.</div>';return;}
+    area.innerHTML=bets.map(b=>`
+      <div class="ab ${b.result}">
+        <span style="color:var(--oddc);font-weight:700;">${b.nome||b.email||b.userId}</span>
+        <span style="margin:0 8px;color:var(--mut)">|</span>${b.eventLabel||'—'} — ${b.selection}
+        <span style="margin:0 8px;color:var(--mut)">|</span>
+        <span style="${b.result==='won'?'color:var(--grn)':'color:var(--red)'}">
+          ${b.result==='won'?'+R$'+b.payout.toFixed(2):'-R$'+(b.stake||0).toFixed(2)}
+        </span>
+        <div style="color:var(--mut);font-size:.7rem;margin-top:3px;">@ ${(b.odd||0).toFixed(2)} · stake R$ ${(b.stake||0).toFixed(2)}</div>
+      </div>`).join('');
+  }catch(e){area.innerHTML='<div class="loading">Erro: '+e.message+'</div>';}
+}
+
+// ===================== ADMIN ESPN CORRECTION =====================
+async function adminCorrectESPNBets(){
+  if(!currentUser||!ADMIN_EMAILS.includes(currentUser.email)) return;
+  const log=document.getElementById('adm-fix-log');
+  log.style.display='block';
+  log.textContent='🔍 Buscando apostas para corrigir...';
+
+  try{
+    // Busca apostas recentes e filtra em JS (evita índice composto)
+    const snap=await db.collection('bets')
+      .orderBy('createdAt','desc').limit(300).get();
+    const resolvedDocs=snap.docs.filter(d=>{const r=d.data().result;return r==='won'||r==='lost';});
+
+    const batch=db.batch();
+    const userAdjustments={};  // userId → deltaCredits
+    let fixCount=0;
+    const fixLog=[];
+
+    for(const doc of resolvedDocs){
+      const b={id:doc.id,...doc.data()};
+
+      if(b.betType==='acumulador'&&b.selections?.length){
+        // Re-verifica cada seleção do acumulador
+        const hasAllActual=b.selections.every(sel=>{
+          const ev=findEvById(sel.evId);
+          return getActualResult(ev)!==null;
+        });
+        if(!hasAllActual) continue; // não tem dados ESPN suficientes
+
+        const allWon=b.selections.every(sel=>simSelResult(sel));
+        const correctResult=allWon?'won':'lost';
+        if(correctResult===b.result) continue; // já correto
+
+        const correctPayout=allWon?Math.round(b.stake*(b.combinedOdd||1)*100)/100:0;
+        const oldPayout=b.payout||0;
+        const delta=correctPayout-oldPayout+(correctResult==='won'&&b.result==='lost'?b.stake:0)-(correctResult==='lost'&&b.result==='won'?b.stake:0);
+
+        batch.update(db.collection('bets').doc(b.id),{
+          result:correctResult,payout:correctPayout,
+          correctedByESPN:true,correctedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+        userAdjustments[b.userId]=(userAdjustments[b.userId]||0)+delta;
+        fixLog.push(`${b.email}: Acumulador → ${correctResult==='won'?'✅ GANHOU (+R$'+correctPayout.toFixed(2)+')':'❌ PERDEU'}`);
+        fixCount++;
+
+      } else if(!b.betType||b.betType==='simples'){
+        // Aposta simples
+        const ev=findEvById(b.eventId||'');
+        const actual=getActualResult(ev);
+        if(actual===null) continue;
+
+        const correctResult=actual===b.selIdx?'won':'lost';
+        if(correctResult===b.result) continue; // já correto
+
+        const correctPayout=correctResult==='won'?Math.round(b.stake*(b.odd||1)*100)/100:0;
+        const oldPayout=b.payout||0;
+        // Delta: se era lost e agora won → +stake (devolver) + payout; se era won e agora lost → -(oldPayout + stake)
+        const delta=correctResult==='won'
+          ? b.stake+correctPayout          // recebe o stake de volta + payout
+          : -(oldPayout+b.stake);          // perde o payout antigo e o stake
+
+        batch.update(db.collection('bets').doc(b.id),{
+          result:correctResult,payout:correctPayout,
+          correctedByESPN:true,correctedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+        userAdjustments[b.userId]=(userAdjustments[b.userId]||0)+delta;
+        fixLog.push(`${b.email}: ${b.eventLabel} — ${b.selection} → ${correctResult==='won'?'✅ GANHOU (+R$'+correctPayout.toFixed(2)+')':'❌ PERDEU'}`);
+        fixCount++;
+      }
+    }
+
+    if(fixCount===0){log.textContent='✅ Todas as apostas já estão com resultados corretos.';return;}
+
+    // Ajusta créditos dos usuários afetados
+    for(const [uid,delta] of Object.entries(userAdjustments)){
+      if(delta===0) continue;
+      batch.update(db.collection('users').doc(uid),{
+        credits:firebase.firestore.FieldValue.increment(Math.round(delta*100)/100),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    await batch.commit();
+    log.innerHTML=`✅ <strong>${fixCount}</strong> aposta(s) corrigida(s):<br>${fixLog.map(l=>`• ${l}`).join('<br>')}`;
+    renderAdmin();
+
+    // Atualiza créditos do admin se ele mesmo foi afetado
+    if(userAdjustments[currentUser.uid]){
+      const snap2=await db.collection('users').doc(currentUser.uid).get();
+      if(snap2.exists){userCredits=snap2.data().credits??userCredits;updateHdrCredits();}
+    }
+
+  }catch(e){
+    log.textContent='❌ Erro: '+e.message;
+    console.error('adminCorrectESPNBets error:',e);
+  }
+}
+
+// ===================== CREDITS =====================
+function updateHdrCredits(){
+  document.getElementById('hdr-cred').textContent='R$ '+userCredits.toFixed(2).replace('.',',');
+}
+
+// ─────────────────────────────────────────────────────────────
+// CREDIT REQUEST MODAL
+function showCreditRequestModal(){
+  document.getElementById('cr-nome').value=currentUserNome||'';
+  document.getElementById('cr-tel').value=currentUserTel||'';
+  document.getElementById('cr-email').value='';
+  document.getElementById('cr-valor').value='';
+  document.getElementById('cr-err').textContent='';
+  document.getElementById('credit-req-modal').style.display='flex';
+}
+function closeCreditModal(){
+  document.getElementById('credit-req-modal').style.display='none';
+}
+async function submitCreditRequest(){
+  const nome=document.getElementById('cr-nome').value.trim();
+  const tel=document.getElementById('cr-tel').value.trim();
+  const email=document.getElementById('cr-email').value.trim();
+  const valor=parseFloat(document.getElementById('cr-valor').value)||0;
+  const errEl=document.getElementById('cr-err');
+  errEl.textContent='';
+  if(!nome){errEl.textContent='Informe seu nome.';return;}
+  if(!tel){errEl.textContent='Informe seu telefone.';return;}
+  if(!email||!email.includes('@')){errEl.textContent='Informe um e-mail válido.';return;}
+  if(valor<10){errEl.textContent='Valor mínimo de crédito: R$ 10,00.';return;}
+  const btn=document.getElementById('cr-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Enviando...';}
+  try{
+    await db.collection('creditRequests').add({
+      userId:currentUser.uid,
+      nome,telefone:tel,email,
+      valorSolicitado:valor,
+      status:'pending',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeCreditModal();
+    document.getElementById('modal-title').style.color='var(--oddc)';
+    document.getElementById('modal-title').className='';
+    document.getElementById('modal-title').textContent='✅ Solicitação Enviada!';
+    document.getElementById('modal-body').innerHTML=
+      `Sua solicitação de <strong>R$ ${valor.toFixed(2)}</strong> foi enviada.<br>Aguarde a aprovação do administrador para começar a apostar.`;
+    document.getElementById('modal').style.display='flex';
+  }catch(e){
+    errEl.textContent='Erro ao enviar: '+e.message;
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Enviar Solicitação';}
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// CREDIT REQUESTS (ADMIN)
+async function renderCreditRequests(){
+  const el=document.getElementById('adm-credit-req-content');
+  if(!el) return;
+  el.innerHTML='<div class="loading">Carregando solicitações...</div>';
+  try{
+    const snap=await db.collection('creditRequests').orderBy('createdAt','desc').limit(100).get();
+    if(snap.empty){el.innerHTML='<div class="no-ev">Nenhuma solicitação encontrada.</div>';return;}
+    el.innerHTML=snap.docs.map(doc=>{
+      const r={id:doc.id,...doc.data()};
+      const dt=r.createdAt
+        ?new Date(r.createdAt.seconds*1000).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+        :'—';
+      const statusColor=r.status==='pending'?'#f0a500':r.status==='approved'?'var(--grn)':'var(--red)';
+      const statusLabel=r.status==='pending'?'⏳ Pendente':r.status==='approved'?'✅ Aprovado':'❌ Rejeitado';
+      const actions=r.status==='pending'?`
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button onclick="adminCreditAction('${r.id}','${r.userId}',${r.valorSolicitado},'approve')"
+            style="flex:1;padding:6px 8px;background:var(--grn);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.74rem;font-weight:700;">✅ Aprovar</button>
+          <button onclick="adminCreditAction('${r.id}','${r.userId}',${r.valorSolicitado},'reject')"
+            style="flex:1;padding:6px 8px;background:var(--red);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.74rem;font-weight:700;">❌ Rejeitar</button>
+        </div>`:'';
+      return `<div class="ab" style="border-left-color:${statusColor}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <span style="color:var(--txt);font-weight:700;">${r.nome||'—'}</span>
+          <span style="color:${statusColor};font-size:.72rem;font-weight:700;">${statusLabel}</span>
+        </div>
+        <div style="color:var(--mut);font-size:.75rem;margin-top:3px;">📱 ${r.telefone||'—'} · ✉️ ${r.email||'—'}</div>
+        <div style="color:var(--oddc);font-weight:700;font-size:.95rem;margin-top:4px;">R$ ${(r.valorSolicitado||0).toFixed(2)}</div>
+        <div style="color:var(--mut);font-size:.7rem;margin-top:2px;">${dt}</div>
+        ${actions}
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="loading">Erro: '+e.message+'</div>';}
+}
+
+async function adminCreditAction(reqId,userId,valor,action){
+  try{
+    const batch=db.batch();
+    batch.update(db.collection('creditRequests').doc(reqId),{
+      status:action==='approve'?'approved':'rejected',
+      resolvedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      resolvedBy:currentUser.email
+    });
+    if(action==='approve'){
+      batch.update(db.collection('users').doc(userId),{
+        credits:firebase.firestore.FieldValue.increment(valor),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    await batch.commit();
+    renderCreditRequests();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+// ─────────────────────────────────────────────────────────────
+// ADMIN USERS
+async function renderAdminUsers(){
+  const el=document.getElementById('adm-users-content');
+  if(!el) return;
+  el.innerHTML='<div class="loading">Carregando usuários...</div>';
+  try{
+    const snap=await db.collection('users').orderBy('credits','desc').limit(100).get();
+    if(snap.empty){el.innerHTML='<div class="no-ev">Nenhum usuário encontrado.</div>';return;}
+    el.innerHTML=`<div style="font-size:.72rem;color:var(--mut);margin-bottom:10px;">Edite o saldo de qualquer usuário diretamente.</div>`+
+      snap.docs.map(doc=>{
+        const u={id:doc.id,...doc.data()};
+        const safeId=u.id.replace(/[^a-zA-Z0-9_-]/g,'');
+        return `<div class="ab" style="border-left-color:var(--grn)">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:var(--txt);font-weight:700;">${u.nome||u.email?.split('@')[0]||'—'}</span>
+            <span style="color:var(--grn);font-weight:700;">R$ <span id="cred-disp-${safeId}">${(u.credits||0).toFixed(2)}</span></span>
+          </div>
+          <div style="color:var(--mut);font-size:.72rem;margin-top:2px;">${u.telefone||u.email||'—'} · Apostas: ${u.totalBets||0}</div>
+          <div style="display:flex;gap:6px;margin-top:8px;align-items:center;">
+            <input id="cred-inp-${safeId}" type="number" min="0" step="10" value="${(u.credits||0).toFixed(2)}"
+              style="flex:1;background:#12151f;border:1px solid #252d3d;color:var(--txt);padding:5px 8px;border-radius:4px;font-size:.8rem;outline:none;">
+            <button onclick="adminSetCredits('${u.id}','${(u.nome||'').replace(/'/g,"\\'")}','cred-inp-${safeId}','cred-disp-${safeId}')"
+              style="padding:5px 14px;background:var(--oddc);color:#0b0d17;border:none;border-radius:4px;cursor:pointer;font-size:.74rem;font-weight:700;">Salvar</button>
+          </div>
+        </div>`;
+      }).join('');
+  }catch(e){el.innerHTML='<div class="loading">Erro: '+e.message+'</div>';}
+}
+
+async function adminSetCredits(userId,nome,inpId,dispId){
+  const inp=document.getElementById(inpId);
+  const newVal=parseFloat(inp?.value);
+  if(isNaN(newVal)||newVal<0){alert('Valor inválido.');return;}
+  try{
+    await db.collection('users').doc(userId).update({
+      credits:Math.round(newVal*100)/100,
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const disp=document.getElementById(dispId);
+    if(disp) disp.textContent=newVal.toFixed(2);
+    alert(`✅ Créditos de ${nome||'usuário'} → R$ ${newVal.toFixed(2)}`);
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+// ===================== AUTH =====================
+let authMode='user';
+function switchAuthTab(mode){
+  authMode=mode;
+  document.getElementById('tab-user').classList.toggle('on',mode==='user');
+  document.getElementById('tab-admin').classList.toggle('on',mode==='admin');
+  document.getElementById('auth-user-form').style.display=mode==='user'?'block':'none';
+  document.getElementById('auth-admin-form').style.display=mode==='admin'?'block':'none';
+  document.getElementById('a-err').textContent='';
+}
+
+// Usuário comum: cadastra com nome + telefone via auth anônimo
+async function doUserAuth(){
+  const nome=document.getElementById('a-nome').value.trim();
+  const tel=document.getElementById('a-tel').value.trim();
+  const err=document.getElementById('a-err');
+  err.textContent='';
+  if(!nome||nome.length<3){err.textContent='Informe seu nome completo.';return;}
+  if(!tel||tel.replace(/\D/g,'').length<8){err.textContent='Informe um telefone válido.';return;}
+  const btn=document.querySelector('#auth-user-form button');
+  btn.disabled=true;btn.textContent='Aguarde...';
+  try{
+    // Usa telefone normalizado como chave para reutilizar conta existente
+    const telKey=tel.replace(/\D/g,'');
+    const synEmail=`user_${telKey}@fortuneodds.app`;
+    const synPass=`FO_${telKey}_2026`;
+    let cred;
+    try{
+      cred=await auth.signInWithEmailAndPassword(synEmail,synPass);
+    }catch(e){
+      if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'){
+        cred=await auth.createUserWithEmailAndPassword(synEmail,synPass);
+      } else {
+        throw e;
+      }
+    }
+    // Salva/atualiza nome e telefone no Firestore
+    await db.collection('users').doc(cred.user.uid).set({
+      nome,telefone:tel,
+      syntheticEmail:synEmail,
+      isUser:true,
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+  }catch(e){
+    const msgs={'auth/email-already-in-use':'Telefone já cadastrado com outro nome.','auth/too-many-requests':'Muitas tentativas. Aguarde.','auth/network-request-failed':'Erro de conexão.'};
+    err.textContent=msgs[e.code]||'Erro: '+e.message;
+    btn.disabled=false;btn.textContent='Entrar / Cadastrar';
+  }
+}
+
+// Admin: email + senha
+async function doAdminAuth(){
+  const em=document.getElementById('a-email').value.trim();
+  const pw=document.getElementById('a-pass').value;
+  const err=document.getElementById('a-err');
+  err.textContent='';
+  if(!em||!pw){err.textContent='Preencha e-mail e senha.';return;}
+  if(!ADMIN_EMAILS.includes(em)){err.textContent='Acesso restrito a administradores.';return;}
+  const btn=document.querySelector('#auth-admin-form button');
+  btn.disabled=true;btn.textContent='Entrando...';
+  try{
+    await auth.signInWithEmailAndPassword(em,pw);
+  }catch(e){
+    const msgs={'auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.','auth/invalid-email':'E-mail inválido.'};
+    err.textContent=msgs[e.code]||e.message;
+    btn.disabled=false;btn.textContent='Entrar como Admin';
+  }
+}
+document.getElementById('a-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doAdminAuth();});
+function doLogout(){auth.signOut();}
+
+
+// ===================== ESPN API =====================
+const COUNTRY_FLAGS = {
+  'brazil':'🇧🇷','brasil':'🇧🇷','argentina':'🇦🇷','france':'🇫🇷','franca':'🇫🇷',
+  'england':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','spain':'🇪🇸','espanha':'🇪🇸',
+  'germany':'🇩🇪','alemanha':'🇩🇪','portugal':'🇵🇹','netherlands':'🇳🇱','holanda':'🇳🇱',
+  'italy':'🇮🇹','italia':'🇮🇹','mexico':'🇲🇽','méxico':'🇲🇽','morocco':'🇲🇦','marrocos':'🇲🇦',
+  'croatia':'🇭🇷','croacia':'🇭🇷','uruguay':'🇺🇾','uruguai':'🇺🇾','usa':'🇺🇸','eua':'🇺🇸',
+  'united states':'🇺🇸','japan':'🇯🇵','japao':'🇯🇵','colombia':'🇨🇴','colômbia':'🇨🇴',
+  'ecuador':'🇪🇨','equador':'🇪🇨','chile':'🇨🇱','peru':'🇵🇪','canada':'🇨🇦','canadá':'🇨🇦',
+  'senegal':'🇸🇳','ghana':'🇬🇭','gana':'🇬🇭','south korea':'🇰🇷','coreia do sul':'🇰🇷',
+  'australia':'🇦🇺','austrália':'🇦🇺','poland':'🇵🇱','polônia':'🇵🇱','belgium':'🇧🇪','bélgica':'🇧🇪',
+  'switzerland':'🇨🇭','suíça':'🇨🇭','serbia':'🇷🇸','sérvia':'🇷🇸','denmark':'🇩🇰','dinamarca':'🇩🇰',
+  'nigeria':'🇳🇬','cameroon':'🇨🇲','camarões':'🇨🇲','iran':'🇮🇷','irã':'🇮🇷',
+  'saudi arabia':'🇸🇦','arábia saudita':'🇸🇦','costa rica':'🇨🇷','panama':'🇵🇦','panamá':'🇵🇦',
+  'honduras':'🇭🇳','jamaica':'🇯🇲','qatar':'🇶🇦','catar':'🇶🇦','turkey':'🇹🇷','turquia':'🇹🇷',
+  'ukraine':'🇺🇦','ucrânia':'🇺🇦','wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','galés':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','tunisia':'🇹🇳','tunísia':'🇹🇳',
+  'new zealand':'🇳🇿','nova zelândia':'🇳🇿','bolivia':'🇧🇴','bolívia':'🇧🇴',
+  'venezuela':'🇻🇪','paraguay':'🇵🇾','paraguai':'🇵🇾','south africa':'🇿🇦','áfrica do sul':'🇿🇦',
+  'czechia':'🇨🇿','czech republic':'🇨🇿','república tcheca':'🇨🇿','austria':'🇦🇹','áustria':'🇦🇹',
+  'sweden':'🇸🇪','suécia':'🇸🇪','norway':'🇳🇴','noruega':'🇳🇴','finland':'🇫🇮','finlândia':'🇫🇮',
+  'russia':'🇷🇺','rússia':'🇷🇺','greece':'🇬🇷','grécia':'🇬🇷','romania':'🇷🇴','romênia':'🇷🇴',
+  'hungary':'🇭🇺','hungria':'🇭🇺','slovakia':'🇸🇰','eslováquia':'🇸🇰','scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿'
+};
+function getFlag(name){
+  const n=name.toLowerCase();
+  for(const[k,v] of Object.entries(COUNTRY_FLAGS)){if(n.includes(k)||k.includes(n))return v;}
+  return '🏳️';
+}
+
+// ===================== TRADUÇÃO DE NOMES =====================
+const PT_NAMES = {
+  'france':'França','germany':'Alemanha','spain':'Espanha','england':'Inglaterra',
+  'netherlands':'Holanda','italy':'Itália','belgium':'Bélgica','croatia':'Croácia',
+  'uruguay':'Uruguai','colombia':'Colômbia','mexico':'México',
+  'united states':'Estados Unidos','usa':'Estados Unidos','japan':'Japão',
+  'morocco':'Marrocos','poland':'Polônia','senegal':'Senegal','australia':'Austrália',
+  'canada':'Canadá','south korea':'Coreia do Sul','ecuador':'Equador','peru':'Peru',
+  'iran':'Irã','tunisia':'Tunísia','saudi arabia':'Arábia Saudita','cameroon':'Camarões',
+  'ghana':'Gana','costa rica':'Costa Rica','bolivia':'Bolívia','switzerland':'Suíça',
+  'denmark':'Dinamarca','sweden':'Suécia','norway':'Noruega','austria':'Áustria',
+  'turkey':'Turquia','ukraine':'Ucrânia','serbia':'Sérvia','czechia':'República Tcheca',
+  'czech republic':'República Tcheca','hungary':'Hungria','romania':'Romênia',
+  'scotland':'Escócia','wales':'País de Gales','ireland':'Irlanda','russia':'Rússia',
+  'venezuela':'Venezuela','paraguay':'Paraguai','panama':'Panamá','honduras':'Honduras',
+  'el salvador':'El Salvador','jamaica':'Jamaica','nigeria':'Nigéria','egypt':'Egito',
+  'ivory coast':'Costa do Marfim','south africa':'África do Sul','algeria':'Argélia',
+  'new zealand':'Nova Zelândia','argentina':'Argentina','brazil':'Brasil',
+  'qatar':'Catar','greece':'Grécia','israel':'Israel','finland':'Finlândia',
+  'iceland':'Islândia','slovakia':'Eslováquia','slovenia':'Eslovênia',
+  'albania':'Albânia','georgia':'Geórgia','north macedonia':'Macedônia do Norte',
+  'luxembourg':'Luxemburgo','moldova':'Moldávia','latvia':'Letônia',
+  'lithuania':'Lituânia','estonia':'Estônia','northern ireland':'Irlanda do Norte',
+  'angola':'Angola','kenya':'Quênia','ethiopia':'Etiópia','mali':'Mali',
+  'democratic republic of congo':'R.D. Congo','cape verde':'Cabo Verde',
+  'myanmar':'Mianmar','thailand':'Tailândia','vietnam':'Vietnã',
+  'indonesia':'Indonésia','malaysia':'Malásia','iraq':'Iraque',
+  'lebanon':'Líbano','jordan':'Jordânia','united arab emirates':'Emirados Árabes',
+  'oman':'Omã','yemen':'Iêmen','mozambique':'Moçambique','cuba':'Cuba',
+  'haiti':'Haiti','burkina faso':'Burkina Faso'
+};
+function translateName(name){
+  if(!name) return name;
+  const low=name.toLowerCase().trim();
+  if(PT_NAMES[low]) return PT_NAMES[low];
+  for(const[en,pt] of Object.entries(PT_NAMES)){
+    if(low===en) return pt;
+    if(en.length>3&&(low.startsWith(en+' ')||low.endsWith(' '+en))) return pt;
+  }
+  return name;
+}
+
+function espnStatus(s){
+  if(!s)return 'scheduled';
+  const n=(s.type?.name||'').toLowerCase();
+  if(n.includes('final')||n.includes('post'))return 'finished';
+  if(n.includes('progress')||n.includes('live')||n.includes('halftime'))return 'live';
+  return 'scheduled';
+}
+function parseESPNEvents(data, cat, comp){
+  const evs=data.events||[];
+  return evs.map((e,i)=>{
+    const c=e.competitions?.[0];
+    if(!c)return null;
+    const home=c.competitors?.find(t=>t.homeAway==='home')||c.competitors?.[0];
+    const away=c.competitors?.find(t=>t.homeAway==='away')||c.competitors?.[1];
+    if(!home||!away)return null;
+    const hn=translateName(home.team?.displayName||home.team?.name||'Time A');
+    const an=translateName(away.team?.displayName||away.team?.name||'Time B');
+    const st=espnStatus(c.status);
+    const score=(st==='finished'||st==='live')?{h:parseInt(home.score)||0,a:parseInt(away.score)||0}:undefined;
+    const round=(e.season?.displayName||c.notes?.[0]?.headline||'');
+    return {
+      id:`espn-${cat}-${i}-${e.id||i}`,cat,comp,
+      round: round||comp,
+      home:{n:hn,f:getFlag(hn)},
+      away:{n:an,f:getFlag(an)},
+      iso:e.date||new Date().toISOString(),
+      status:st,
+      score,
+      fromESPN:true
+    };
+  }).filter(Boolean);
+}
+
+let espnLoaded=false;
+let espnInterval=null;
+let lastUpdated=null;
+function updateLastUpdatedLabel(){
+  const el=document.getElementById('last-updated');
+  if(!el)return;
+  if(!lastUpdated){el.textContent='';return;}
+  const m=lastUpdated.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  el.textContent=`Atualizado às ${m}`;
+}
+async function loadESPNData(){
+  if(espnLoaded)return;
+  const area=document.getElementById('events-area');
+  if(activeCat==='all'||activeCat==='Copa'){
+    area.innerHTML='<div class="loading">🌍 Buscando jogos da Copa do Mundo em tempo real...</div>';
+  }
+  function fmtESPN(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+m+dd;}
+  const now=new Date();
+  const copaDates=[0,1,2,3].map(i=>{const d=new Date(now);d.setDate(d.getDate()+i);return fmtESPN(d);});
+  for(let i=EVENTS.length-1;i>=0;i--){
+    if(EVENTS[i].cat==='Copa')EVENTS.splice(i,1);
+  }
+  const ENDPOINTS=[
+    ...copaDates.map(dt=>({url:`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dt}`,cat:'Copa',comp:'Copa do Mundo 2026'})),
+    {url:'https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard',cat:'SerieA',comp:'Brasileirão Série A'},
+  ];
+  let anySuccess=false;
+  for(const ep of ENDPOINTS){
+    try{
+      const res=await fetch(ep.url,{signal:AbortSignal.timeout(8000)});
+      if(!res.ok)continue;
+      const data=await res.json();
+      const parsed=parseESPNEvents(data,ep.cat,ep.comp);
+      if(parsed.length>0){
+        if(ep.cat!=='Copa'){
+          for(let i=EVENTS.length-1;i>=0;i--){
+            if(EVENTS[i].cat===ep.cat)EVENTS.splice(i,1);
+          }
+        }
+        parsed.forEach(ev=>{ev.odds=genOdds(ev.home.n,ev.away.n);EVENTS.push(ev);});
+        anySuccess=true;
+        console.log(`ESPN OK: ${parsed.length} jogos de ${ep.comp} (${ep.url.slice(-8)})`);
+      }
+    }catch(err){
+      console.warn(`ESPN fetch failed for ${ep.comp}:`,err.message);
+    }
+  }
+  espnLoaded=true;
+  lastUpdated=new Date();
+  updateLastUpdatedLabel();
+  updateCounts();
+  renderEvents();
+  if(!anySuccess&&(activeCat==='all'||activeCat==='Copa')){
+    console.warn('ESPN indisponível — mostrando dados locais');
+  }
+}
+
+// ===================== AUTH STATE =====================
+let currentUserNome = null;
+let currentUserTel = null;
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    currentUser=user;
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    // Reset button states
+    const ubtn=document.querySelector('#auth-user-form button');
+    const abtn=document.querySelector('#auth-admin-form button');
+    if(ubtn){ubtn.disabled=false;ubtn.textContent='Entrar / Cadastrar';}
+    if(abtn){abtn.disabled=false;abtn.textContent='Entrar como Admin';}
+    // Load user data from Firestore
+    let nome=null;
+    try{
+      const snap=await db.collection('users').doc(user.uid).get();
+      if(snap.exists){
+        const d=snap.data();
+        nome=d.nome||null;
+        currentUserTel=d.telefone||null;
+        if(d.credits!=null) userCredits=d.credits;
+        else userCredits=0;
+      } else {
+        // New admin user
+        if(ADMIN_EMAILS.includes(user.email)){
+          await db.collection('users').doc(user.uid).set({
+            email:user.email,credits:0,totalBets:0,totalWon:0,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp()
+          },{merge:true});
+        }
+        userCredits=0;
+      }
+    }catch{userCredits=0;}
+    // Display name: nome para usuários comuns, prefixo do email para admins
+    currentUserNome=nome;
+    // currentUserTel already set above inside snap.exists block
+    const isAdmin=ADMIN_EMAILS.includes(user.email);
+    document.getElementById('hdr-user').textContent=nome||(user.email?user.email.split('@')[0]:'Usuário');
+    if(isAdmin){
+      document.getElementById('sb-admin').style.display='flex';
+      document.getElementById('sb-ranking').style.display='flex';
+    }
+    updateHdrCredits();
+    updateCounts();
+    renderEvents();
+    loadESPNData();
+    if(espnInterval) clearInterval(espnInterval);
+    espnInterval=setInterval(()=>{espnLoaded=false;loadESPNData();},60*60*1000);
+    if(betsUnsub) betsUnsub();
+    betsUnsub=db.collection('bets').where('userId','==',user.uid).limit(50).onSnapshot(snap=>{
+      allBets=snap.docs.map(d=>({_id:d.id,...d.data()}));
+      renderHistory(allBets);
+    }, err=>{
+      console.error('Firestore bets error:',err);
+      db.collection('bets').where('userId','==',user.uid).limit(50).get().then(s=>{
+        allBets=s.docs.map(d=>({_id:d.id,...d.data()}));
+        renderHistory(allBets);
+      });
+    });
+  } else {
+    currentUser=null;
+    currentUserNome=null;
+    currentUserTel=null;
+    espnLoaded=
