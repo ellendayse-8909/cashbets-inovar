@@ -1116,12 +1116,14 @@ function selectBet(evId,selIdx,label,odd,mktKey){
     if(slip&&slip.evId===evId&&slip.selIdx===selIdx) slip=null;
     else slip={evId,selIdx,label,odd,evLabel,iso:ev.iso,mktKey:mktKey||'1x2'};
   } else {
-    const idx=multiSlip.findIndex(s=>s.evId===evId);
+    // Chave única: evId + mercado — permite múltiplos mercados do mesmo jogo
+    const key=evId+'|'+(mktKey||'1x2');
+    const idx=multiSlip.findIndex(s=>(s.evId+'|'+(s.mktKey||'1x2'))===key);
     if(idx>=0){
       if(multiSlip[idx].selIdx===selIdx) multiSlip.splice(idx,1);
-      else multiSlip[idx]={evId,selIdx,label,odd,evLabel,iso:ev.iso};
+      else multiSlip[idx]={evId,selIdx,label,odd,evLabel,iso:ev.iso,mktKey:mktKey||'1x2',stake:multiSlip[idx].stake||10};
     } else {
-      multiSlip.push({evId,selIdx,label,odd,evLabel,iso:ev.iso,mktKey:mktKey||'1x2'});
+      multiSlip.push({evId,selIdx,label,odd,evLabel,iso:ev.iso,mktKey:mktKey||'1x2',stake:10});
     }
   }
   renderSlip();
@@ -1239,14 +1241,21 @@ function renderSlip(){
     return;
   }
 
-  // Apostas individuais por jogo
+  // CARRINHO — apostas individuais acumuladas
   if(multiSlip.length===0){
-    el.innerHTML='<div class="slip-empty">Selecione os jogos para apostar</div>';
+    el.innerHTML=`
+      <div style="text-align:center;padding:20px 10px;">
+        <div style="font-size:2rem;margin-bottom:8px;">🛒</div>
+        <div style="color:var(--mut);font-size:.82rem;line-height:1.5">
+          Selecione as cotas dos jogos.<br>
+          <strong style="color:var(--txt)">Adicione quantas quiser</strong> e confirme tudo<br>de uma vez com um único PIX.
+        </div>
+      </div>`;
     updateFab();return;
   }
   const selList=multiSlip.map((s,i)=>{
-    const stk=parseFloat(s.stake)||0;
-    const vals=[10,50,100,500];
+    const stk=parseFloat(s.stake)||10;
+    const vals=[5,10,25,50];
     const btns=vals.map(v=>`<button onclick="updateSelStake(${i},${v})" style="flex:1;padding:4px 0;background:${stk===v?'var(--grn)':'#1a2133'};border:1px solid ${stk===v?'var(--grn)':'#2a3550'};color:${stk===v?'#fff':'var(--dim)'};border-radius:4px;font-size:.74rem;font-weight:600;cursor:pointer">R$${v}</button>`).join('');
     return `
     <div class="ms-item">
@@ -1259,18 +1268,23 @@ function renderSlip(){
       </div>
       <div style="display:flex;gap:4px;margin-top:6px">${btns}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:.74rem">
-        <span style="color:var(--mut)">Apostado: <strong style="color:${stk?'#fff':'var(--mut)'}">${stk?'R$'+stk.toFixed(2):'—'}</strong></span>
-        <span id="sel-ret-${i}" style="color:${stk?'var(--grn)':'var(--mut)'}">${stk?'→ R$'+(stk*s.odd).toFixed(2):'—'}</span>
+        <span style="color:var(--mut)">Valor: <strong style="color:#fff">R$${stk.toFixed(2)}</strong></span>
+        <span style="color:var(--grn)">→ R$${(stk*s.odd).toFixed(2)}</span>
       </div>
     </div>`;}).join('');
-  const totalStk=multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||0),0);
-  const totalRet=multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||0)*s.odd,0);
+  const totalStk=multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||10),0);
+  const totalRet=multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||10)*s.odd,0);
+  const hint=multiSlip.length===1?`<div style="text-align:center;font-size:.74rem;color:var(--mut);margin:6px 0 2px">💡 Adicione mais jogos antes de confirmar</div>`:'';
   el.innerHTML=`
     <div class="ms-list">${selList}</div>
-    <div class="ret-box" style="margin-top:8px"><span class="ret-lbl">Total a apostar</span><span class="ret-val" id="slip-total-stk">R$ ${totalStk.toFixed(2).replace('.',',')}</span></div>
-    <div class="ret-box"><span class="ret-lbl">Retorno potencial</span><span class="ret-val" style="color:var(--grn)" id="slip-total-ret">R$ ${totalRet.toFixed(2).replace('.',',')}</span></div>
-    <button class="cbtn" onclick="confirmBet()">Confirmar ${multiSlip.length} Aposta${multiSlip.length>1?'s':''}</button>
-    <button class="xbtn" onclick="clearSlip()">Cancelar</button>`;
+    ${hint}
+    <div class="ret-box" style="margin-top:8px;border-top:1px solid #1f2937;padding-top:8px">
+      <span class="ret-lbl">💰 Total a pagar (${multiSlip.length} aposta${multiSlip.length>1?'s':''})</span>
+      <span class="ret-val" style="font-size:1.1rem">R$ ${totalStk.toFixed(2).replace('.',',')}</span>
+    </div>
+    <div class="ret-box"><span class="ret-lbl">Retorno potencial</span><span class="ret-val" style="color:var(--grn)">R$ ${totalRet.toFixed(2).replace('.',',')}</span></div>
+    <button class="cbtn" onclick="confirmBet()" style="margin-top:10px">⚡ Gerar PIX — R$ ${totalStk.toFixed(2).replace('.',',')}</button>
+    <button class="xbtn" onclick="clearSlip()">Limpar carrinho</button>`;
   updateFab();
 }
 function removeMultiSel(i){multiSlip.splice(i,1);renderSlip();renderEvents();}
@@ -1676,7 +1690,7 @@ async function confirmIndividualBets(){
   for(const s of multiSlip){
     const ev=EVENTS.find(e=>e.id===s.evId);
     if(!ev||isLocked(ev.iso)){alert('Um dos jogos já está fechado para apostas!');return;}
-    if(!(parseFloat(s.stake)>=1)){alert(`Informe o valor da aposta em: ${s.evLabel}`);return;}
+    if(!s.stake) s.stake=10; // default R$10 se não definido
   }
   const totalStk=Math.round(multiSlip.reduce((t,s)=>t+(parseFloat(s.stake)||10),0)*100)/100;
   if(totalStk>userCredits){showCreditRequestModal();return;}
